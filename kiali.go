@@ -54,6 +54,7 @@ func init() {
 
 }
 
+//main 入口 找到你了 。。。。
 func main() {
 	defer glog.Flush()
 	util.Clock = util.RealClock{}
@@ -100,6 +101,7 @@ func main() {
 	internalmetrics.RegisterInternalMetrics()
 
 	// Start listening to requests
+	// 开始请求监听内容
 	server := server.NewServer()
 	server.Start()
 
@@ -310,5 +312,5 @@ func isError(err error) bool {
 		log.Errorf("File I/O error [%v]", err.Error())
 	}
 
-	return (err != nil)
+	return err != nil
 }

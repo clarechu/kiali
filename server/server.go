@@ -22,7 +22,7 @@ type Server struct {
 func NewServer() *Server {
 	conf := config.Get()
 	// create a router that will route all incoming API server requests to different handlers
-
+	// 创建不同的接口 在这里
 	router := routing.NewRouter()
 
 	if conf.Server.CORSAllowAll {

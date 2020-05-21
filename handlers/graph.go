@@ -40,6 +40,7 @@ import (
 )
 
 // GraphNamespaces is a REST http.HandlerFunc handling graph generation for 1 or more namespaces
+// 查询流量图 这里这里
 func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 	defer handlePanic(w)
 

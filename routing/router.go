@@ -39,6 +39,7 @@ func NewRouter() *mux.Router {
 	appRouter = appRouter.StrictSlash(true)
 
 	// Build our API server routes and install them.
+	// 这里 API
 	apiRoutes := NewRoutes()
 	authenticationHandler, _ := handlers.NewAuthenticationHandler()
 	for _, route := range apiRoutes.Routes {
