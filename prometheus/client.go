@@ -73,6 +73,21 @@ func NewClient() (*Client, error) {
 	return &client, nil
 }
 
+
+// NewClient creates a new client to the Prometheus API.
+// It returns an error on any problem.
+func NewClientNoAuth() (*Client, error) {
+	url := "http://10.10.13.39:31331"
+	clientConfig := api.Config{Address: url}
+	p8s, err := api.NewClient(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	client := Client{p8s: p8s, api: prom_v1.NewAPI(p8s)}
+	return &client, nil
+}
+
+
 // Inject allows for replacing the API with a mock For testing
 func (in *Client) Inject(api prom_v1.API) {
 	in.api = api

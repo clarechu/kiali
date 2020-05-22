@@ -3,15 +3,14 @@ package business
 import (
 	"regexp"
 
-	osproject_v1 "github.com/openshift/api/project/v1"
-	core_v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/prometheus/internalmetrics"
+	osproject_v1 "github.com/openshift/api/project/v1"
+	core_v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // Namespace deals with fetching k8s namespaces / OpenShift projects and convert to kiali model
@@ -219,6 +218,22 @@ func (in *NamespaceService) GetNamespace(namespace string) (*models.Namespace, e
 		}
 	}
 	return &result, nil
+}
+
+func (in *NamespaceService) GetNoCacheNamespace(namespace string) (*models.Namespace, error) {
+	var err error
+	promtimer := internalmetrics.GetGoFunctionMetric("business", "NamespaceService", "GetNamespace")
+	defer promtimer.ObserveNow(&err)
+	namespaces, err := in.k8s.GetNamespace(namespace)
+	if err != nil {
+		return nil, err
+	}
+	ns := &models.Namespace{
+		Name:              namespaces.Name,
+		CreationTimestamp: namespaces.CreationTimestamp.Time,
+		Labels:            namespaces.Labels,
+	}
+	return ns, nil
 }
 
 func (in *NamespaceService) getNamespacesUsingKialiSA(labelSelector string, forwardedError error) ([]core_v1.Namespace, error) {

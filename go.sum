@@ -36,6 +36,8 @@ github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577 h1:at4+18LrM8
 github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577/go.mod h1:fltr4n8CU8Ke44wwGCBoEymUuxUHl09ZGVZPK5anwXA=
 github.com/hashicorp/golang-lru v0.5.0 h1:CL2msUPvZTLb5O648aiLNJw3hnBxN2+1Jq8rCOH9wdo=
 github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ4Ao+sR/qLZy8=
+github.com/imdario/mergo v0.3.9 h1:UauaLniWCFHWd+Jp9oCEkTBj8VO/9DKg3PV3VCNMDIg=
+github.com/imdario/mergo v0.3.9/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=
 github.com/jaegertracing/jaeger v1.15.1 h1:7QzNAXq+4ko9GtCjozDNAp2uonoABu+B2Rk94hjQcp4=
 github.com/jaegertracing/jaeger v1.15.1/go.mod h1:LUWPSnzNPGRubM8pk0inANGitpiMOOxihXx0+53llXI=
 github.com/json-iterator/go v1.1.6 h1:MrUvLMLTMxbqFJ9kzlvat/rYZqZnW3u4wkLzWTaFwKs=

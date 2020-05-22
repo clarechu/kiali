@@ -4,6 +4,9 @@ package graph
 
 import (
 	"fmt"
+	"github.com/kiali/kiali/kubernetes"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	net_http "net/http"
 	"net/url"
 	"strconv"
@@ -82,6 +85,7 @@ type TelemetryOptions struct {
 
 // Options comprises all available options
 type Options struct {
+	Context         string
 	ConfigVendor    string
 	TelemetryVendor string
 	ConfigOptions
@@ -110,6 +114,7 @@ func NewOptions(r *net_http.Request) Options {
 	injectServiceNodesString := params.Get("injectServiceNodes")
 	namespaces := params.Get("namespaces") // csl of namespaces
 	queryTimeString := params.Get("queryTime")
+	context := params.Get("context")
 	telemetryVendor := params.Get("telemetryVendor")
 
 	if _, ok := params["appenders"]; ok {
@@ -175,19 +180,19 @@ func NewOptions(r *net_http.Request) Options {
 	// Process namespaces options:
 	namespaceMap := NewNamespaceInfoMap()
 
-	tokenContext := r.Context().Value("token")
-	var token string
-	if tokenContext != nil {
-		if tokenString, ok := tokenContext.(string); !ok {
-			Error("token is not of type string")
+	/*	tokenContext := r.Context().Value("token")
+		var token string
+		if tokenContext != nil {
+			if tokenString, ok := tokenContext.(string); !ok {
+				Error("token is not of type string")
+			} else {
+				token = tokenString
+			}
 		} else {
-			token = tokenString
-		}
-	} else {
-		Error("token missing in request context")
-	}
+			Error("token missing in request context")
+		}*/
 
-	accessibleNamespaces := getAccessibleNamespaces(token)
+	accessibleNamespaces := getAccessibleNamespacesNoToken(context)
 
 	// If path variable is set then it is the only relevant namespace (it's a node graph)
 	// Else if namespaces query param is set it specifies the relevant namespaces
@@ -219,6 +224,7 @@ func NewOptions(r *net_http.Request) Options {
 	}
 
 	options := Options{
+		Context:         context,
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{
@@ -284,6 +290,48 @@ func getAccessibleNamespaces(token string) map[string]time.Time {
 	}
 
 	return namespaceMap
+}
+
+// getAccessibleNamespaces returns a Set of all namespaces accessible to the user.
+// The Set is implemented using the map convention. Each map entry is set to the
+// creation timestamp of the namespace, to be used to ensure valid time ranges for
+// queries against the namespace.
+func getAccessibleNamespacesNoToken(context string) map[string]time.Time {
+	namespaceMap := make(map[string]time.Time)
+	configMap, err := GetConfigMap(context)
+	if err != nil {
+		return namespaceMap
+	}
+	clientSet, err := kubernetes.GetK8sClientSet(configMap.BinaryData[KubeConfig])
+	if err != nil {
+		return namespaceMap
+	}
+	ops := metav1.ListOptions{}
+	ns, err := clientSet.CoreV1().Namespaces().List(ops)
+	if err != nil {
+		return namespaceMap
+	}
+
+	for _, namespace := range ns.Items {
+		namespaceMap[namespace.Name] = namespace.CreationTimestamp.Time
+	}
+	return namespaceMap
+}
+
+const (
+	DefaultNamespace = "service-mesh"
+	KubeConfig       = "kubeConfig"
+	App              = "app"
+	Mesher           = "mesher"
+)
+
+func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
+	ops := metav1.GetOptions{}
+	clientSet, err := kubernetes.GetDefaultK8sClientSet()
+	if err != nil {
+		return nil, err
+	}
+	return clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
 }
 
 // getSafeNamespaceDuration returns a safe duration for the query. If queryTime-requestedDuration > namespace

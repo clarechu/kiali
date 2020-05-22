@@ -1,14 +1,15 @@
 package business
 
 import (
-	"sync"
-
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/jaeger"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/kubernetes/cache"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/prometheus"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sync"
 )
 
 // Layer is a container for fast access to inner services
@@ -87,6 +88,60 @@ func Get(token string) (*Layer, error) {
 	// Create Jaeger client
 	jaegerLoader := func() (jaeger.ClientInterface, error) {
 		return jaeger.NewClient(token)
+	}
+
+	return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil
+}
+
+const (
+	DefaultNamespace = "service-mesh"
+	KubeConfig       = "kubeConfig"
+)
+
+func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
+	ops := metav1.GetOptions{}
+	clientSet, err := kubernetes.GetDefaultK8sClientSet()
+	if err != nil {
+		return nil, err
+	}
+	return clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
+}
+
+// Get the business.Layer
+func GetNoAuth(name string) (*Layer, error) {
+	// Kiali Cache will be initialized once at first use of Business layer
+	once.Do(initKialiCache)
+	configMap, err := GetConfigMap(name)
+	if err != nil {
+		return nil, err
+	}
+	// Use an existing client factory if it exists, otherwise create and use in the future
+	if clientFactory == nil {
+		userClient, err := kubernetes.GetClientFileFactory(configMap.BinaryData[KubeConfig])
+		if err != nil {
+			return nil, err
+		}
+		clientFactory = userClient
+	}
+
+	// Creates a new k8s client based on the current users token
+	k8s, err := clientFactory.GetClientNoAuth()
+	if err != nil {
+		return nil, err
+	}
+
+	// Use an existing Prometheus client if it exists, otherwise create and use in the future
+	if prometheusClient == nil {
+		prom, err := prometheus.NewClientNoAuth()
+		if err != nil {
+			return nil, err
+		}
+		prometheusClient = prom
+	}
+
+	// Create Jaeger client
+	jaegerLoader := func() (jaeger.ClientInterface, error) {
+		return jaeger.NewClientNoAuth()
 	}
 
 	return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil

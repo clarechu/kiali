@@ -72,3 +72,8 @@ func getBusiness(r *http.Request) (*business.Layer, error) {
 
 	return business.Get(token)
 }
+
+// getBusiness noauth returns the business layer specific to the users's request
+func getBusinessNoAuth(name string) (*business.Layer, error) {
+	return business.GetNoAuth(name)
+}

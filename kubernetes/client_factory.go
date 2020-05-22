@@ -1,10 +1,13 @@
 package kubernetes
 
 import (
+	"errors"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"sync"
 	"time"
-
-	"k8s.io/client-go/rest"
 
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/prometheus/internalmetrics"
@@ -20,6 +23,7 @@ const expirationTime = time.Minute * 15
 // ClientFactory interface for the clientFactory object
 type ClientFactory interface {
 	GetClient(token string) (IstioClientInterface, error)
+	GetClientNoAuth() (IstioClientInterface, error)
 }
 
 // clientFactory used to generate per users clients
@@ -58,6 +62,102 @@ func GetClientFactory() (ClientFactory, error) {
 	return factory, nil
 }
 
+// GetClientFactory returns the client factory. Creates a new one if necessary
+func GetClientFileFactory(kubeConfigBytes []byte) (ClientFactory, error) {
+	if factory == nil {
+		// Create a new config based on what was gathered above but don't specify the bearer token to use
+		istioConfig, err := GetK8sRestClient(kubeConfigBytes)
+		if err != nil {
+			return nil, err
+		}
+		return getClientFactory(istioConfig, expirationTime)
+
+	}
+	return factory, nil
+}
+
+
+func GetK8sRestClient(kubeConfigBytes []byte) (restConfig *rest.Config, err error) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			err = errors.New("get not found cluster")
+			return
+		}
+	}()
+	cf, err := LoadFromFile(kubeConfigBytes)
+	if err != nil {
+		return nil, err
+	}
+	config := &rest.Config{
+		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
+			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
+			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
+		},
+	}
+	return config, nil
+}
+
+func GetK8sClientSet(kubeConfigBytes []byte) (clientSet *kubernetes.Clientset, err error) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			err = errors.New("")
+			return
+		}
+	}()
+	cf, err := LoadFromFile(kubeConfigBytes)
+	if err != nil {
+		return nil, err
+	}
+	config := &rest.Config{
+		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
+		TLSClientConfig: rest.TLSClientConfig{
+			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
+			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
+			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
+		},
+	}
+	clientSet, err = kubernetes.NewForConfig(config)
+	return
+}
+
+// LoadFromFile takes a filename and deserializes the contents into Config object
+func LoadFromFile(kubeconfigBytes []byte) (*clientcmdapi.Config, error) {
+	config, err := clientcmd.Load(kubeconfigBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// set LocationOfOrigin on every Cluster, User, and Context
+	for key, obj := range config.AuthInfos {
+		obj.LocationOfOrigin = "default"
+		config.AuthInfos[key] = obj
+	}
+	for key, obj := range config.Clusters {
+		obj.LocationOfOrigin = "default"
+		config.Clusters[key] = obj
+	}
+	for key, obj := range config.Contexts {
+		obj.LocationOfOrigin = "default"
+		config.Contexts[key] = obj
+	}
+
+	if config.AuthInfos == nil {
+		config.AuthInfos = map[string]*clientcmdapi.AuthInfo{}
+	}
+	if config.Clusters == nil {
+		config.Clusters = map[string]*clientcmdapi.Cluster{}
+	}
+	if config.Contexts == nil {
+		config.Contexts = map[string]*clientcmdapi.Context{}
+	}
+
+	return config, nil
+}
+
 // newClientFactory allows for specifying the config and expiry duration
 // Mock friendly for testing purposes
 func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFactory, error) {
@@ -85,9 +185,24 @@ func (cf *clientFactory) newClient(token string) (IstioClientInterface, error) {
 	return NewClientFromConfig(config)
 }
 
+// NewClient creates a new IstioClientInterface based on a users k8s token
+func (cf *clientFactory) newClientNoAuth() (IstioClientInterface, error) {
+	config := cf.baseIstioConfig
+	return NewClientFromConfig(config)
+}
+
 // GetClient returns a client for the specified token. Creating one if necessary.
 func (cf *clientFactory) GetClient(token string) (IstioClientInterface, error) {
 	clientEntry, err := cf.getClientEntry(token)
+	if err != nil {
+		return nil, err
+	}
+	return clientEntry.client, nil
+}
+
+// GetClient returns a client for the specified token. Creating one if necessary.
+func (cf *clientFactory) GetClientNoAuth() (IstioClientInterface, error) {
+	clientEntry, err := cf.getClientEntryNoAuth()
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +234,24 @@ func (cf *clientFactory) getClientEntry(token string) (*clientEntry, error) {
 		internalmetrics.SetKubernetesClients(len(cf.clientEntries))
 		return &cEntry, nil
 	}
+}
+
+// getClientEntry returns a clientEntry for the specified token. Creating one if necessary.
+func (cf *clientFactory) getClientEntryNoAuth() (*clientEntry, error) {
+	client, err := cf.newClientNoAuth()
+	if err != nil {
+		log.Errorf("Error fetching the Kubernetes client: %v", err)
+		return nil, err
+	}
+	cEntry := clientEntry{
+		client:  client,
+		created: time.Now(),
+	}
+
+	mutex.Lock()
+	mutex.Unlock()
+	internalmetrics.SetKubernetesClients(len(cf.clientEntries))
+	return &cEntry, nil
 }
 
 // watchClients loops over clients and removes ones which are too old

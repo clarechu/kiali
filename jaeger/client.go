@@ -56,6 +56,33 @@ func NewClient(token string) (*Client, error) {
 	}
 }
 
+func NewClientNoAuth() (*Client, error) {
+	cfg := config.Get()
+	cfgTracing := cfg.ExternalServices.Tracing
+
+	if !cfgTracing.Enabled {
+		return nil, errors.New("jaeger is not available")
+	} else {
+		auth := cfgTracing.Auth
+		if auth.UseKialiToken {}
+		u, errParse := url.Parse(cfgTracing.InClusterURL)
+		if !cfg.InCluster {
+			u, errParse = url.Parse(cfgTracing.URL)
+		}
+		if errParse != nil {
+			log.Errorf("Error parse Jaeger URL: %s", errParse)
+			return nil, errParse
+		}
+		timeout := time.Duration(5000 * time.Millisecond)
+		transport, err := httputil.AuthTransport(&auth, &http.Transport{})
+		if err != nil {
+			return nil, err
+		}
+		client := http.Client{Transport: transport, Timeout: timeout}
+		return &Client{client: client, endpoint: u}, nil
+	}
+}
+
 // GetSpans fetches Jaeger traces of a service and extract related spans
 // Returns (spans, error)
 func (in *Client) GetSpans(namespace, service, startMicros, endMicros string) ([]Span, error) {

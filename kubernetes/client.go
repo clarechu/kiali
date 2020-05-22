@@ -2,9 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	"net"
-	"os"
-
 	osapps_v1 "github.com/openshift/api/apps/v1"
 	osproject_v1 "github.com/openshift/api/project/v1"
 	osroutes_v1 "github.com/openshift/api/route/v1"
@@ -20,6 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 	kube "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
+	"net"
+	"os"
+	"path/filepath"
 
 	kialiConfig "github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/log"
@@ -230,6 +232,34 @@ func ConfigClient() (*rest.Config, error) {
 		QPS:   kialiConfig.Get().KubernetesConfig.QPS,
 		Burst: kialiConfig.Get().KubernetesConfig.Burst,
 	}, nil
+}
+
+func GetDefaultK8sClientSet() (clientSet *kube.Clientset, err error) {
+	var config *rest.Config
+	if os.Getenv("KUBERNETES_SERVICE_HOST") == "" {
+		kubeConfig := GetKubeConfig()
+		config, err = clientcmd.BuildConfigFromFlags("", kubeConfig)
+		if err != nil {
+			return
+		}
+	} else {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			return
+		}
+	}
+	clientSet, err = kube.NewForConfig(config)
+	return
+}
+
+//GetKubeConfig
+func GetKubeConfig() (kubeConfig string) {
+	if home := homedir.HomeDir(); home != "" {
+		kubeConfig = filepath.Join(home, ".kube", "config")
+	} else {
+		kubeConfig = os.Getenv("KUBECONFIG")
+	}
+	return
 }
 
 // NewClientFromConfig creates a new client to the Kubernetes and Istio APIs.

@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/mux v1.7.4
 	github.com/hashicorp/go-version v0.0.0-20180322230233-23480c066577
 	github.com/hashicorp/golang-lru v0.5.0 // indirect
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/jaegertracing/jaeger v1.15.1
 	github.com/jtblin/go-ldap-client v0.0.0-20161205001958-ad9f2ea47a83
 	github.com/kiali/k-charted v0.5.1-0.20200427094832-5ae8b0ffa6d4
@@ -41,5 +42,3 @@ require (
 	k8s.io/utils v0.0.0-20190221042446-c2654d5206da // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )
-
-
