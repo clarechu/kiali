@@ -22,7 +22,7 @@ func TestGraphNode(t *testing.T) {
 	}
 	o := graph.NewOptions(r)
 
-	business, err := getBusinessNoAuth(o.Context)
+	business, err := GetBusinessNoAuth(o.Context)
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)
 	fmt.Print(code)
