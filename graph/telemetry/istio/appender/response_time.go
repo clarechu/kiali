@@ -58,6 +58,15 @@ func (a ResponseTimeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInf
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
 }
 
+// AppendGraph implements Appender
+func (a ResponseTimeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo,
+	client *prometheus.Client) {
+	if len(trafficMap) == 0 {
+		return
+	}
+	a.appendGraph(trafficMap, namespaceInfo.Namespace, client)
+}
+
 func (a ResponseTimeAppender) appendGraph(trafficMap graph.TrafficMap, namespace string, client *prometheus.Client) {
 	quantile := a.Quantile
 	if a.Quantile <= 0.0 || a.Quantile >= 100.0 {

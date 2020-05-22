@@ -45,7 +45,7 @@ type Appender interface {
 	// AppendGraph performs the appender work on the provided traffic map. The map
 	// may be initially empty. An appender is allowed to add or remove map entries.
 	AppendGraph(trafficMap TrafficMap, globalInfo *AppenderGlobalInfo, namespaceInfo *AppenderNamespaceInfo)
-
+	AppendGraphNoAuth(trafficMap TrafficMap, globalInfo *AppenderGlobalInfo, namespaceInfo *AppenderNamespaceInfo, client *prometheus.Client)
 	// Name returns a unique appender name and which is the name used to identify the appender (e.g in 'appenders' query param)
 	Name() string
 }

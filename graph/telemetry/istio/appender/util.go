@@ -25,7 +25,10 @@ func promQuery(query string, queryTime time.Time, api prom_v1.API, a graph.Appen
 
 	promtimer := internalmetrics.GetPrometheusProcessingTimePrometheusTimer("Graph-Appender-" + a.Name())
 	value, err := api.Query(ctx, query, queryTime)
-	graph.CheckError(err)
+	if err != nil {
+		log.Errorf("get api query err :%v", err)
+		return nil
+	}
 	promtimer.ObserveDuration() // notice we only collect metrics for successful prom queries
 
 	switch t := value.Type(); t {

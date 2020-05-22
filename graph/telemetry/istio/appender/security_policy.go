@@ -49,6 +49,9 @@ func (a SecurityPolicyAppender) AppendGraph(trafficMap graph.TrafficMap, globalI
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
 }
 
+func (a SecurityPolicyAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
+}
+
 func (a SecurityPolicyAppender) appendGraph(trafficMap graph.TrafficMap, namespace string, client *prometheus.Client) {
 	log.Tracef("Resolving security policy for namespace = %v", namespace)
 	duration := a.Namespaces[namespace].Duration

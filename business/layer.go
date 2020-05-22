@@ -28,6 +28,7 @@ type Layer struct {
 	ThreeScale     ThreeScaleService
 	Iter8          Iter8Service
 	IstioStatus    IstioStatusService
+	Context        string
 }
 
 // Global clientfactory and prometheus clients.
@@ -132,7 +133,7 @@ func GetNoAuth(name string) (*Layer, error) {
 
 	// Use an existing Prometheus client if it exists, otherwise create and use in the future
 	if prometheusClient == nil {
-		prom, err := prometheus.NewClientNoAuth()
+		prom, err := prometheus.NewClientNoAuth(name)
 		if err != nil {
 			return nil, err
 		}
@@ -143,8 +144,9 @@ func GetNoAuth(name string) (*Layer, error) {
 	jaegerLoader := func() (jaeger.ClientInterface, error) {
 		return jaeger.NewClientNoAuth()
 	}
-
-	return NewWithBackends(k8s, prometheusClient, jaegerLoader), nil
+	layer := NewWithBackends(k8s, prometheusClient, jaegerLoader)
+	layer.Context = name
+	return layer, nil
 }
 
 // SetWithBackends allows for specifying the ClientFactory and Prometheus clients to be used.

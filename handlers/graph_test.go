@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/graph/api"
@@ -13,18 +14,18 @@ func TestGraphNode(t *testing.T) {
 	r := &http.Request{
 		Method:     http.MethodGet,
 		Host:       "localhost:8577",
-		RequestURI: "/graph/list?duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode&namespaces=default",
+		RequestURI: "/graph/list?duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=default&context=cluster03",
 		URL: &url.URL{
 			Path:     "/graph/list",
-			RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode&namespaces=default&context=cluster03",
+			RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=default&context=cluster03",
 		},
 	}
 	o := graph.NewOptions(r)
 
 	business, err := getBusinessNoAuth(o.Context)
 	graph.CheckError(err)
-
 	code, payload := api.GraphNamespaces(business, o)
 	fmt.Print(code)
-	fmt.Println(payload)
+	b, _ := json.MarshalIndent(payload, "", "")
+	fmt.Println(string(b))
 }

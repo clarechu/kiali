@@ -6,6 +6,7 @@ import (
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
+	"github.com/kiali/kiali/prometheus"
 )
 
 const IstioAppenderName = "istio"
@@ -147,4 +148,8 @@ func addLabels(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo
 			}
 		}
 	}
+}
+
+func (a IstioAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client)  {
+
 }
