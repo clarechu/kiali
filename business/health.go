@@ -7,7 +7,6 @@ import (
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
@@ -39,10 +38,10 @@ func (in *HealthService) GetAppHealth(namespace, app, rateInterval string, query
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "HealthService", "GetAppHealth")
 	defer promtimer.ObserveNow(&err)
 
-	appLabel := config.Get().IstioLabels.AppLabelName
+	//appLabel := config.Get().IstioLabels.AppLabelName
 
 	selectorLabels := make(map[string]string)
-	selectorLabels[appLabel] = app
+	selectorLabels["app"] = app
 	labelSelector := labels.FormatLabels(selectorLabels)
 
 	ws, err := fetchWorkloads(in.businessLayer, namespace, labelSelector)
@@ -296,6 +295,7 @@ func (in *HealthService) getServiceRequestsHealth(namespace, service, rateInterv
 	return rqHealth, err
 }
 
+// 获取 app request health
 func (in *HealthService) getAppRequestsHealth(namespace, app, rateInterval string, queryTime time.Time) (models.RequestHealth, error) {
 	rqHealth := models.NewEmptyRequestHealth()
 	inbound, outbound, err := in.prom.GetAppRequestRates(namespace, app, rateInterval, queryTime)

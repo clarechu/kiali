@@ -149,7 +149,8 @@ type baseHealthParams struct {
 
 func (p *baseHealthParams) baseExtract(r *http.Request, vars map[string]string) {
 	p.RateInterval = defaultHealthRateInterval
-	p.QueryTime = util.Clock.Now()
+	time := time.Now()
+	p.QueryTime = time
 	queryParams := r.URL.Query()
 	if rateInterval := queryParams.Get("rateInterval"); rateInterval != "" {
 		p.RateInterval = rateInterval
@@ -201,6 +202,13 @@ func (p *appHealthParams) extract(r *http.Request) {
 	p.App = vars["app"]
 }
 
+func (p *appHealthParams) Extract(app string, rateInterval string, namespace string) {
+	p.RateInterval = rateInterval
+	p.App = app
+	p.Namespace = namespace
+	p.QueryTime = time.Now()
+}
+
 // serviceHealthParams holds the path and query parameters for ServiceHealth
 //
 // swagger:parameters serviceHealth
@@ -237,6 +245,24 @@ func (p *workloadHealthParams) extract(r *http.Request) {
 
 func adjustRateInterval(business *business.Layer, namespace, rateInterval string, queryTime time.Time) (string, error) {
 	namespaceInfo, err := business.Namespace.GetNamespace(namespace)
+	if err != nil {
+		return "", err
+	}
+	interval, err := util.AdjustRateInterval(namespaceInfo.CreationTimestamp, queryTime, rateInterval)
+	if err != nil {
+		return "", err
+	}
+
+	if interval != rateInterval {
+		log.Debugf("Rate interval for namespace %v was adjusted to %v (original = %v, query time = %v, namespace created = %v)",
+			namespace, interval, rateInterval, queryTime, namespaceInfo.CreationTimestamp)
+	}
+
+	return interval, nil
+}
+
+func AdjustRateIntervalNoAuth(business *business.Layer, namespace, rateInterval string, queryTime time.Time) (string, error) {
+	namespaceInfo, err := business.Namespace.GetNoCacheNamespace(namespace)
 	if err != nil {
 		return "", err
 	}

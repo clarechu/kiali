@@ -1,6 +1,7 @@
 package business
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -67,6 +68,14 @@ func TestGetAppHealth(t *testing.T) {
 	assert.InDelta(float64((1.6+3.5+3.5)/(1.6+5+5+3.5+3.5)), health.Requests.ErrorRatio, 0.0001)
 	assert.Equal(float64(1), health.Requests.InboundErrorRatio)
 	assert.Equal(float64((3.5+3.5)/(5+5+3.5+3.5)), health.Requests.OutboundErrorRatio)
+}
+
+func TestAppService_GetApp(t *testing.T) {
+	in := &HealthService{}
+	queryTime := time.Date(2017, 01, 15, 0, 0, 0, 0, time.UTC)
+	health, err := in.GetAppHealth("bookinfo", "", "60s", queryTime)
+	assert.Error(t, nil, err)
+	fmt.Print(health)
 }
 
 func TestGetWorkloadHealth(t *testing.T) {
