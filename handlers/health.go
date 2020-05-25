@@ -196,13 +196,21 @@ type appHealthParams struct {
 	App string `json:"app"`
 }
 
+type AppHealthParams struct {
+	baseHealthParams
+	// The target app
+	//
+	// in: path
+	App string `json:"app"`
+}
+
 func (p *appHealthParams) extract(r *http.Request) {
 	vars := mux.Vars(r)
 	p.baseExtract(r, vars)
 	p.App = vars["app"]
 }
 
-func (p *appHealthParams) Extract(app string, rateInterval string, namespace string) {
+func (p *AppHealthParams) Extract(app string, rateInterval string, namespace string) {
 	p.RateInterval = rateInterval
 	p.App = app
 	p.Namespace = namespace

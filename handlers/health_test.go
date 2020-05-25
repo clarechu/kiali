@@ -26,7 +26,7 @@ func TestServiceHealth(t *testing.T) {
 	p := serviceHealthParams{}
 	p.extract(r)
 	p.Namespace = "default"
-	p.Service = "ratings"
+	p.Service = "productpage"
 	rateInterval, err := AdjustRateIntervalNoAuth(business, p.Namespace, p.RateInterval, p.QueryTime)
 	assert.Equal(t, nil, err)
 	health, err := business.Health.GetServiceHealth(p.Namespace, p.Service, rateInterval, p.QueryTime)
@@ -38,8 +38,8 @@ func TestAppHealth(t *testing.T) {
 	context := "cluster01"
 	business, err := GetBusinessNoAuth(context)
 	assert.Equal(t, nil, err)
-	p := appHealthParams{}
-	p.Extract("ratings", "60s", "bookinfo")
+	p := AppHealthParams{}
+	p.Extract("productpage", "60s", "bookinfo")
 	rateInterval, err := AdjustRateIntervalNoAuth(business, p.Namespace, p.RateInterval, p.QueryTime)
 	assert.Equal(t, nil, err)
 	health, err := business.Health.GetAppHealth(p.Namespace, p.App, rateInterval, p.QueryTime)

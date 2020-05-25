@@ -57,7 +57,7 @@ func (in *HealthService) getAppHealth(namespace, app, rateInterval string, query
 	health := models.EmptyAppHealth()
 
 	// Perf: do not bother fetching request rate if there are no workloads or no workload has sidecar
-	fetchRate := false
+	fetchRate := true
 	for _, w := range ws {
 		if w.IstioSidecar {
 			fetchRate = true
