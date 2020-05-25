@@ -82,6 +82,7 @@ func AppHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // WorkloadHealth is the API handler to get health of a single workload
+// workload health
 func WorkloadHealth(w http.ResponseWriter, r *http.Request) {
 	business, err := getBusiness(r)
 	if err != nil {
@@ -103,6 +104,7 @@ func WorkloadHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServiceHealth is the API handler to get health of a single service
+// service health
 func ServiceHealth(w http.ResponseWriter, r *http.Request) {
 	business, err := getBusiness(r)
 	if err != nil {
