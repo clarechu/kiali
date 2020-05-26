@@ -39,7 +39,7 @@ func TestAppHealth(t *testing.T) {
 	business, err := GetBusinessNoAuth(context)
 	assert.Equal(t, nil, err)
 	p := AppHealthParams{}
-	p.Extract("productpage", "60s", "bookinfo")
+	p.Extract("kubernetes", "60s", "bookinfo")
 	rateInterval, err := AdjustRateIntervalNoAuth(business, p.Namespace, p.RateInterval, p.QueryTime)
 	assert.Equal(t, nil, err)
 	health, err := business.Health.GetAppHealth(p.Namespace, p.App, rateInterval, p.QueryTime)

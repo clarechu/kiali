@@ -14,10 +14,10 @@ func TestGraphNode(t *testing.T) {
 	r := &http.Request{
 		Method:     http.MethodGet,
 		Host:       "localhost:8577",
-		RequestURI: "/graph/list?duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=default&context=cluster03",
+		RequestURI: "/graph/list?duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=bookinfo&context=cluster01",
 		URL: &url.URL{
 			Path:     "/graph/list",
-			RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=default&context=cluster03",
+			RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,responseTime&namespaces=bookinfo&context=cluster01",
 		},
 	}
 	o := graph.NewOptions(r)
