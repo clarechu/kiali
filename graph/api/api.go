@@ -40,7 +40,7 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	// Create a 'global' object to store the business. Global only to the request.
 	globalInfo := graph.NewAppenderGlobalInfo()
 	globalInfo.Business = business
-
+	globalInfo.PromClient = prom
 	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo)
 	code, config = generateGraph(trafficMap, o)
 
