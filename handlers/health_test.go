@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func TestServiceHealth(t *testing.T) {
@@ -52,25 +53,36 @@ func TestWorkloadHealth(t *testing.T) {
 }
 
 func TestNamespaceHealth(t *testing.T) {
-/*	// Get business layer
+	// Get business layer
 	context := "cluster01"
 	business, err := GetBusinessNoAuth(context)
 	assert.Equal(t, nil, err)
-	p := namespaceHealthParams{}
-	ok, err := p.extract(r)
+	p := NamespaceHealthParams{
+		Type: "app",
+		BaseHealthParams: BaseHealthParams{
+			Namespace:    "bookinfo",
+			RateInterval: "60s",
+			QueryTime:    time.Now(),
+		},
+	}
+	ok, _ := p.Extract()
+	assert.Equal(t, true, ok)
 	// Adjust rate interval
-	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
+	rateInterval, err := AdjustRateIntervalNoAuth(business, p.Namespace, p.RateInterval, p.QueryTime)
 	assert.Equal(t, nil, err)
 
 	switch p.Type {
 	case "app":
 		health, err := business.Health.GetNamespaceAppHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
+		/*	case "service":
+				health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
 
-	case "service":
-		health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
+			case "workload":
+				health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
+		*/
+	}
 
-	case "workload":
-		health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
-
-	}*/
 }
