@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kiali/kiali/business"
+	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/prometheus"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -18,6 +19,7 @@ import (
 //step=216&
 //rateInterval=216s
 func TestWorkloadDashboard(t *testing.T) {
+	config.Set(config.NewConfig())
 	namespace := "default"
 	workload := "productpage-v1"
 	context := "cluster03"
