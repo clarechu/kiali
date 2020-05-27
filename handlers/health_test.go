@@ -50,3 +50,27 @@ func TestAppHealth(t *testing.T) {
 func TestWorkloadHealth(t *testing.T) {
 
 }
+
+func TestNamespaceHealth(t *testing.T) {
+/*	// Get business layer
+	context := "cluster01"
+	business, err := GetBusinessNoAuth(context)
+	assert.Equal(t, nil, err)
+	p := namespaceHealthParams{}
+	ok, err := p.extract(r)
+	// Adjust rate interval
+	rateInterval, err := adjustRateInterval(business, p.Namespace, p.RateInterval, p.QueryTime)
+	assert.Equal(t, nil, err)
+
+	switch p.Type {
+	case "app":
+		health, err := business.Health.GetNamespaceAppHealth(p.Namespace, rateInterval, p.QueryTime)
+
+	case "service":
+		health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
+
+	case "workload":
+		health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
+
+	}*/
+}

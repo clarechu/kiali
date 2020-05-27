@@ -13,7 +13,13 @@ import (
 
 type promClientSupplier func() (*prometheus.Client, error)
 
+type promNoAuthClientSupplier func(context string) (*prometheus.Client, error)
+
+
 var defaultPromClientSupplier = prometheus.NewClient
+
+var defaultNoAuthPromClientSupplier = prometheus.NewClientNoAuth
+
 
 func validateURL(serviceURL string) (*url.URL, error) {
 	return url.ParseRequestURI(serviceURL)
@@ -34,7 +40,46 @@ func checkNamespaceAccess(w http.ResponseWriter, r *http.Request, prom prometheu
 	}
 }
 
+func CheckNamespaceAccess(context string, namespace string) *models.Namespace {
+	layer, err := GetBusinessNoAuth(context)
+	if err != nil {
+		return nil
+	}
+
+	if nsInfo, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+		return nil
+	} else {
+		return nsInfo
+	}
+}
+
+func InitContextClientsForMetrics(promSupplier promNoAuthClientSupplier, namespace, context string) (*prometheus.Client, *models.Namespace) {
+	prom, err := promSupplier(context)
+	if err != nil {
+		return nil, nil
+	}
+
+	nsInfo := CheckNamespaceAccess(context, namespace)
+	if nsInfo == nil {
+		return nil, nil
+	}
+	return prom, nsInfo
+}
+
 func initClientsForMetrics(w http.ResponseWriter, r *http.Request, promSupplier promClientSupplier, namespace string) (*prometheus.Client, *models.Namespace) {
+	prom, err := promSupplier()
+	if err != nil {
+		return nil, nil
+	}
+
+	nsInfo := CheckNamespaceAccess("context", namespace)
+	if nsInfo == nil {
+		return nil, nil
+	}
+	return prom, nsInfo
+}
+
+func InitClientsForMetrics(w http.ResponseWriter, r *http.Request, promSupplier promClientSupplier, namespace string) (*prometheus.Client, *models.Namespace) {
 	prom, err := promSupplier()
 	if err != nil {
 		log.Error(err)
