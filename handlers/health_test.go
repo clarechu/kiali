@@ -58,7 +58,7 @@ func TestNamespaceHealth(t *testing.T) {
 	business, err := GetBusinessNoAuth(context)
 	assert.Equal(t, nil, err)
 	p := NamespaceHealthParams{
-		Type: "app",
+		Type: "service",
 		BaseHealthParams: BaseHealthParams{
 			Namespace:    "bookinfo",
 			RateInterval: "60s",
@@ -77,12 +77,16 @@ func TestNamespaceHealth(t *testing.T) {
 		assert.Equal(t, nil, err)
 		b, _ := json.MarshalIndent(health, "", "")
 		fmt.Println(string(b))
-		/*	case "service":
-				health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
-
-			case "workload":
-				health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
-		*/
+	case "service":
+		health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
+	case "workload":
+		health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
 	}
 
 }
