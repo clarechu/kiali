@@ -15,11 +15,9 @@ type promClientSupplier func() (*prometheus.Client, error)
 
 type promNoAuthClientSupplier func(context string) (*prometheus.Client, error)
 
-
 var defaultPromClientSupplier = prometheus.NewClient
 
-var defaultNoAuthPromClientSupplier = prometheus.NewClientNoAuth
-
+var DefaultNoAuthPromClientSupplier = prometheus.NewClientNoAuth
 
 func validateURL(serviceURL string) (*url.URL, error) {
 	return url.ParseRequestURI(serviceURL)
@@ -79,15 +77,14 @@ func initClientsForMetrics(w http.ResponseWriter, r *http.Request, promSupplier 
 	return prom, nsInfo
 }
 
-func InitClientsForMetrics(w http.ResponseWriter, r *http.Request, promSupplier promClientSupplier, namespace string) (*prometheus.Client, *models.Namespace) {
-	prom, err := promSupplier()
+func InitClientsForMetrics(promSupplier promNoAuthClientSupplier, namespace, context string) (*prometheus.Client, *models.Namespace) {
+	prom, err := promSupplier(context)
 	if err != nil {
 		log.Error(err)
-		RespondWithError(w, http.StatusServiceUnavailable, "Prometheus client error: "+err.Error())
 		return nil, nil
 	}
 
-	nsInfo := checkNamespaceAccess(w, r, prom, namespace)
+	nsInfo := CheckNamespaceAccess(context, namespace)
 	if nsInfo == nil {
 		return nil, nil
 	}
