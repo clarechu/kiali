@@ -94,3 +94,7 @@ func TestWorkloadMetrics(t *testing.T) {
 	b, _ := json.MarshalIndent(metrics, "", "")
 	fmt.Println(string(b))
 }
+
+func TestServiceMetrics(t *testing.T) {
+
+}
