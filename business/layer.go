@@ -111,7 +111,7 @@ func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
 // Get the business.Layer
 func GetNoAuth(name string) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
-	once.Do(initKialiCache)
+	//once.Do(initKialiCache)
 	configMap, err := GetConfigMap(name)
 	if err != nil {
 		return nil, err

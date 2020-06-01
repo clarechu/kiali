@@ -92,7 +92,9 @@ type Options struct {
 	TelemetryOptions
 }
 
-func NewOptions(r *net_http.Request) Options {
+func NewOptions(
+	r *net_http.Request,
+	) Options {
 	// path variables (0 or more will be set)
 	vars := mux.Vars(r)
 	app := vars["app"]
