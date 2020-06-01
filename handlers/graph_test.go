@@ -13,6 +13,37 @@ import (
 
 func TestGraphNode(t *testing.T) {
 	config.Set(config.NewConfig())
+	/*	r := &http.Request{
+			Method:     http.MethodGet,
+			Host:       "localhost:8577",
+			RequestURI: "/graph/list?duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy&namespaces=default&context=cluster03",
+			URL: &url.URL{
+				Path:     "/graph/list",
+				RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy&namespaces=default&context=cluster03",
+			},
+		}
+	*/
+	//o := graph.NewOptions(r)
+	option := graph.Option{
+		Duration:           "60s",
+		GraphType:          "versionedApp",
+		InjectServiceNodes: "true",
+		GroupBy:            "app",
+		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
+		Namespaces:         "default",
+		Context:            "cluster03",
+	}
+	o := option.NewGraphOptions()
+	business, err := GetBusinessNoAuth(o.Context)
+	graph.CheckError(err)
+	code, payload := api.GraphNamespaces(business, o)
+	fmt.Print(code)
+	b, _ := json.MarshalIndent(payload, "", "")
+	fmt.Println(string(b))
+}
+
+func TestGraphNode1(t *testing.T) {
+	config.Set(config.NewConfig())
 	r := &http.Request{
 		Method:     http.MethodGet,
 		Host:       "localhost:8577",
@@ -22,8 +53,8 @@ func TestGraphNode(t *testing.T) {
 			RawQuery: "duration=60s&graphType=versionedApp&injectServiceNodes=true&groupBy=app&appenders=deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy&namespaces=default&context=cluster03",
 		},
 	}
-	o := graph.NewOptions(r)
 
+	o := graph.NewOptions(r)
 	business, err := GetBusinessNoAuth(o.Context)
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)

@@ -94,7 +94,7 @@ type Options struct {
 
 func NewOptions(
 	r *net_http.Request,
-	) Options {
+) Options {
 	// path variables (0 or more will be set)
 	vars := mux.Vars(r)
 	app := vars["app"]
@@ -292,6 +292,190 @@ func getAccessibleNamespaces(token string) map[string]time.Time {
 	}
 
 	return namespaceMap
+}
+
+type Option struct {
+	App                string `json:"app"`
+	Namespace          string `json:"namespace"`
+	Service            string `json:"service"`
+	Version            string `json:"version"`
+	Workload           string `json:"workload"`
+	ConfigVendor       string `json:"configVendor"`
+	Duration           string `json:"duration"`
+	GraphType          string `json:"graphType"`
+	GroupBy            string `json:"groupBy"`
+	InjectServiceNodes string `json:"injectServiceNodes"`
+	Namespaces         string `json:"namespaces"`
+	QueryTime          string `json:"queryTime"`
+	Context            string `json:"context"`
+	TelemetryVendor    string `json:"telemetryVendor"`
+	Appenders          string `json:"appenders"`
+}
+
+func (o *Option) NewGraphOptions() Options {
+	// path variables (0 or more will be set)
+	app := o.App
+	namespace := o.Namespace
+	service := o.Service
+	version := o.Version
+	workload := o.Workload
+
+	// query params
+	var duration model.Duration
+	var injectServiceNodes bool
+	var queryTime int64
+	appenders := RequestedAppenders{All: true}
+	configVendor := o.ConfigVendor
+	durationString := o.Duration
+	graphType := o.GraphType
+	groupBy := o.GroupBy
+	injectServiceNodesString := o.InjectServiceNodes
+	namespaces := o.Namespaces // csl of namespaces
+	queryTimeString := o.QueryTime
+	context := o.Context
+	telemetryVendor := o.TelemetryVendor
+
+	if o.Appenders != "" {
+		appenderNames := strings.Split(o.Appenders, ",")
+		for i, appenderName := range appenderNames {
+			appenderNames[i] = strings.TrimSpace(appenderName)
+		}
+		appenders = RequestedAppenders{All: false, AppenderNames: appenderNames}
+	}
+
+	if configVendor == "" {
+		configVendor = defaultConfigVendor
+	} else if configVendor != VendorCytoscape {
+		BadRequest(fmt.Sprintf("Invalid configVendor [%s]", configVendor))
+	}
+	if durationString == "" {
+		duration, _ = model.ParseDuration(defaultDuration)
+	} else {
+		var durationErr error
+		duration, durationErr = model.ParseDuration(durationString)
+		if durationErr != nil {
+			BadRequest(fmt.Sprintf("Invalid duration [%s]", durationString))
+		}
+	}
+	if graphType == "" {
+		graphType = defaultGraphType
+	} else if graphType != GraphTypeApp && graphType != GraphTypeService && graphType != GraphTypeVersionedApp && graphType != GraphTypeWorkload {
+		BadRequest(fmt.Sprintf("Invalid graphType [%s]", graphType))
+	}
+	// app node graphs require an app graph type
+	if app != "" && graphType != GraphTypeApp && graphType != GraphTypeVersionedApp {
+		BadRequest(fmt.Sprintf("Invalid graphType [%s]. This node detail graph supports only graphType app or versionedApp.", graphType))
+	}
+	if groupBy == "" {
+		groupBy = defaultGroupBy
+	} else if groupBy != GroupByApp && groupBy != GroupByNone && groupBy != GroupByVersion {
+		BadRequest(fmt.Sprintf("Invalid groupBy [%s]", groupBy))
+	}
+	if injectServiceNodesString == "" {
+		injectServiceNodes = defaultInjectServiceNodes
+	} else {
+		var injectServiceNodesErr error
+		injectServiceNodes, injectServiceNodesErr = strconv.ParseBool(injectServiceNodesString)
+		if injectServiceNodesErr != nil {
+			BadRequest(fmt.Sprintf("Invalid injectServiceNodes [%s]", injectServiceNodesString))
+		}
+	}
+	if queryTimeString == "" {
+		queryTime = time.Now().Unix()
+	} else {
+		var queryTimeErr error
+		queryTime, queryTimeErr = strconv.ParseInt(queryTimeString, 10, 64)
+		if queryTimeErr != nil {
+			BadRequest(fmt.Sprintf("Invalid queryTime [%s]", queryTimeString))
+		}
+	}
+	if telemetryVendor == "" {
+		telemetryVendor = defaultTelemetryVendor
+	} else if telemetryVendor != VendorIstio {
+		BadRequest(fmt.Sprintf("Invalid telemetryVendor [%s]", telemetryVendor))
+	}
+
+	// Process namespaces options:
+	namespaceMap := NewNamespaceInfoMap()
+
+	/*	tokenContext := r.Context().Value("token")
+		var token string
+		if tokenContext != nil {
+			if tokenString, ok := tokenContext.(string); !ok {
+				Error("token is not of type string")
+			} else {
+				token = tokenString
+			}
+		} else {
+			Error("token missing in request context")
+		}*/
+
+	accessibleNamespaces := getAccessibleNamespacesNoToken(context)
+
+	// If path variable is set then it is the only relevant namespace (it's a node graph)
+	// Else if namespaces query param is set it specifies the relevant namespaces
+	// Else error, at least one namespace is required.
+	if namespace != "" {
+		namespaces = namespace
+	}
+
+	if namespaces == "" {
+		BadRequest(fmt.Sprintf("At least one namespace must be specified via the namespaces query parameter."))
+	}
+
+	for _, namespaceToken := range strings.Split(namespaces, ",") {
+		namespaceToken = strings.TrimSpace(namespaceToken)
+		if creationTime, found := accessibleNamespaces[namespaceToken]; found {
+			namespaceMap[namespaceToken] = NamespaceInfo{
+				Name:     namespaceToken,
+				Duration: getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime),
+				IsIstio:  config.IsIstioNamespace(namespaceToken),
+			}
+		} else {
+			Forbidden(fmt.Sprintf("Requested namespace [%s] is not accessible.", namespaceToken))
+		}
+	}
+
+	// Service graphs require service injection
+	if graphType == GraphTypeService {
+		injectServiceNodes = true
+	}
+
+	options := Options{
+		Context:         context,
+		ConfigVendor:    configVendor,
+		TelemetryVendor: telemetryVendor,
+		ConfigOptions: ConfigOptions{
+			GroupBy: groupBy,
+			CommonOptions: CommonOptions{
+				Duration:  time.Duration(duration),
+				GraphType: graphType,
+				//Params:    params,
+				QueryTime: queryTime,
+			},
+		},
+		TelemetryOptions: TelemetryOptions{
+			AccessibleNamespaces: accessibleNamespaces,
+			Appenders:            appenders,
+			InjectServiceNodes:   injectServiceNodes,
+			Namespaces:           namespaceMap,
+			CommonOptions: CommonOptions{
+				Duration:  time.Duration(duration),
+				GraphType: graphType,
+				//Params:    params,
+				QueryTime: queryTime,
+			},
+			NodeOptions: NodeOptions{
+				App:       app,
+				Namespace: namespace,
+				Service:   service,
+				Version:   version,
+				Workload:  workload,
+			},
+		},
+	}
+
+	return options
 }
 
 // getAccessibleNamespaces returns a Set of all namespaces accessible to the user.
