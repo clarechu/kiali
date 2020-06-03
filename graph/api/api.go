@@ -21,7 +21,7 @@ func GraphNamespaces(business *business.Layer, o graph.Options) (code int, confi
 
 	switch o.TelemetryVendor {
 	case graph.VendorIstio:
-		prom, err := prometheus.NewClientNoAuth(business.Context)
+		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
 		graph.CheckError(err)
 		code, config = graphNamespacesIstio(business, prom, o)
 	default:

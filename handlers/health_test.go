@@ -20,8 +20,8 @@ func TestServiceHealth(t *testing.T) {
 			RawQuery: "type=service&rateInterval=60s&context=cluster03",
 		},
 	}
-	context := "cluster03"
-	business, err := GetBusinessNoAuth(context)
+	//context := "cluster03"
+	business, err := GetBusinessNoAuth(nil, "")
 	assert.Equal(t, nil, err)
 
 	p := serviceHealthParams{}
@@ -36,8 +36,8 @@ func TestServiceHealth(t *testing.T) {
 }
 
 func TestAppHealth(t *testing.T) {
-	context := "cluster01"
-	business, err := GetBusinessNoAuth(context)
+	//context := "cluster01"
+	business, err := GetBusinessNoAuth(nil, "")
 	assert.Equal(t, nil, err)
 	p := AppHealthParams{}
 	p.Extract("kubernetes", "60s", "bookinfo")
@@ -54,8 +54,8 @@ func TestWorkloadHealth(t *testing.T) {
 
 func TestNamespaceHealth(t *testing.T) {
 	// Get business layer
-	context := "cluster01"
-	business, err := GetBusinessNoAuth(context)
+	//context := "cluster01"
+	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.39:30580")
 	assert.Equal(t, nil, err)
 	p := NamespaceHealthParams{
 		Type: "service",

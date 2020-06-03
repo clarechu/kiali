@@ -11,8 +11,8 @@ import (
 func TestAppMetrics(t *testing.T) {
 	namespace := "default"
 	app := "default"
-	context := "cluster03"
-	prom, namespaceInfo := InitClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, context)
+	//context := "cluster03"
+	prom, namespaceInfo := InitClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, GetRestConfig(), "http://10.10.13.39:30580")
 	if prom == nil {
 		// any returned value nil means error & response already written
 		return

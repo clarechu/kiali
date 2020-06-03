@@ -9,6 +9,7 @@ import (
 	"github.com/kiali/kiali/prometheus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"sync"
 )
 
@@ -28,7 +29,7 @@ type Layer struct {
 	ThreeScale     ThreeScaleService
 	Iter8          Iter8Service
 	IstioStatus    IstioStatusService
-	Context        string
+	PromAddress    string
 }
 
 // Global clientfactory and prometheus clients.
@@ -109,22 +110,13 @@ func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
 }
 
 // Get the business.Layer
-func GetNoAuth(name string) (*Layer, error) {
+func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
-	//once.Do(initKialiCache)
-	configMap, err := GetConfigMap(name)
+	userClient, err := kubernetes.GetClientFileFactory(config)
 	if err != nil {
 		return nil, err
 	}
-	// Use an existing client factory if it exists, otherwise create and use in the future
-	if clientFactory == nil {
-		userClient, err := kubernetes.GetClientFileFactory(configMap.BinaryData[KubeConfig])
-		if err != nil {
-			return nil, err
-		}
-		clientFactory = userClient
-	}
-
+	clientFactory = userClient
 	// Creates a new k8s client based on the current users token
 	k8s, err := clientFactory.GetClientNoAuth()
 	if err != nil {
@@ -133,7 +125,7 @@ func GetNoAuth(name string) (*Layer, error) {
 
 	// Use an existing Prometheus client if it exists, otherwise create and use in the future
 	if prometheusClient == nil {
-		prom, err := prometheus.NewClientNoAuth(name)
+		prom, err := prometheus.NewClientNoAuth(promAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +137,7 @@ func GetNoAuth(name string) (*Layer, error) {
 		return jaeger.NewClientNoAuth()
 	}
 	layer := NewWithBackends(k8s, prometheusClient, jaegerLoader)
-	layer.Context = name
+	layer.PromAddress = promAddress
 	return layer, nil
 }
 

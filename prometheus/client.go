@@ -2,7 +2,6 @@ package prometheus
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/kiali/k-charted/httputil"
 	"github.com/kiali/kiali/kubernetes"
@@ -10,10 +9,7 @@ import (
 	"github.com/prometheus/client_golang/api"
 	prom_v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/kiali/kiali/config"
@@ -41,6 +37,7 @@ type Client struct {
 	p8s api.Client
 	api prom_v1.API
 }
+
 // NewClient creates a new client to the Prometheus API.
 // It returns an error on any problem.
 func NewClient() (*Client, error) {
@@ -77,12 +74,8 @@ func NewClient() (*Client, error) {
 
 // NewClient creates a new client to the Prometheus API.
 // It returns an error on any problem.
-func NewClientNoAuth(context string) (*Client, error) {
-	url, err := GetKialiAddress(context)
-	if err != nil {
-		return nil, err
-	}
-	clientConfig := api.Config{Address: *url}
+func NewClientNoAuth(address string) (*Client, error) {
+	clientConfig := api.Config{Address: address}
 	p8s, err := api.NewClient(clientConfig)
 	if err != nil {
 		return nil, err
@@ -98,44 +91,6 @@ const (
 	Host             = "host"
 	Mesher           = "mesher"
 )
-
-//GetKialiAddress 获取集群kiali的集群地址
-func GetKialiAddress(name string) (address *string, err error) {
-	ops := metav1.GetOptions{}
-	clientSet, err := kubernetes.GetDefaultK8sClientSet()
-	if err != nil {
-		return nil, err
-	}
-	configMap, err := clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
-	if err != nil {
-		return nil, err
-	}
-	host := configMap.Data[Host]
-	if host == "" {
-		e := fmt.Sprintf("cluster name: %s not found host", name)
-		return nil, errors.New(e)
-	}
-	ip := strings.Split(strings.Split(host, "://")[1], ":")[0]
-	clientSet, err = kubernetes.GetK8sClientSet(configMap.BinaryData[KubeConfig])
-	if err != nil {
-		return nil, err
-	}
-	svc, err := clientSet.CoreV1().Services("istio-system").Get("prometheus", ops)
-	if err != nil {
-		return
-	}
-	if svc.Spec.Type == corev1.ServiceTypeNodePort {
-		port := fmt.Sprintf("http://%s:%d", ip, svc.Spec.Ports[0].NodePort)
-		return &port, nil
-	}
-	svc.Spec.Type = corev1.ServiceTypeNodePort
-	service, err := clientSet.CoreV1().Services("istio-system").Update(svc)
-	if err != nil {
-		return
-	}
-	url := fmt.Sprintf("http://%s:%d", ip, service.Spec.Ports[0].NodePort)
-	return &url, nil
-}
 
 // Inject allows for replacing the API with a mock For testing
 func (in *Client) Inject(api prom_v1.API) {

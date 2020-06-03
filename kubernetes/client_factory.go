@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -63,63 +62,16 @@ func GetClientFactory() (ClientFactory, error) {
 }
 
 // GetClientFactory returns the client factory. Creates a new one if necessary
-func GetClientFileFactory(kubeConfigBytes []byte) (ClientFactory, error) {
+func GetClientFileFactory(config *rest.Config) (ClientFactory, error) {
 	if factory == nil {
 		// Create a new config based on what was gathered above but don't specify the bearer token to use
-		istioConfig, err := GetK8sRestClient(kubeConfigBytes)
-		if err != nil {
-			return nil, err
-		}
-		return getClientFactory(istioConfig, expirationTime)
+		return getClientFactory(config, expirationTime)
 
 	}
 	return factory, nil
 }
 
-
-func GetK8sRestClient(kubeConfigBytes []byte) (restConfig *rest.Config, err error) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			err = errors.New("get not found cluster")
-			return
-		}
-	}()
-	cf, err := LoadFromFile(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	config := &rest.Config{
-		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
-			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
-			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
-		},
-	}
-	return config, nil
-}
-
-func GetK8sClientSet(kubeConfigBytes []byte) (clientSet *kubernetes.Clientset, err error) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			err = errors.New("")
-			return
-		}
-	}()
-	cf, err := LoadFromFile(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	config := &rest.Config{
-		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
-			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
-			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
-		},
-	}
+func GetK8sClientSet(config *rest.Config) (clientSet *kubernetes.Clientset, err error) {
 	clientSet, err = kubernetes.NewForConfig(config)
 	return
 }

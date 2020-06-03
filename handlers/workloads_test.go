@@ -22,8 +22,8 @@ func TestWorkloadDashboard(t *testing.T) {
 	config.Set(config.NewConfig())
 	namespace := "default"
 	workload := "productpage-v1"
-	context := "cluster03"
-	prom, namespaceInfo := InitContextClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, context)
+	//context := "cluster03"
+	prom, namespaceInfo := InitContextClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, GetRestConfig(), "http://10.10.13.39:30580")
 	assert.NotEqual(t, prom, nil)
 	eim := &ExtractIstioMetrics{
 		Reporter:     "destination",
@@ -63,8 +63,8 @@ func TestWorkloadDashboard(t *testing.T) {
 func TestWorkloadMetrics(t *testing.T) {
 	namespace := "default"
 	workload := "productpage-v1"
-	context := "cluster03"
-	prom, namespaceInfo := InitClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, context)
+	//context := "cluster03"
+	prom, namespaceInfo := InitClientsForMetrics(DefaultNoAuthPromClientSupplier, namespace, GetRestConfig(), "http://10.10.13.39:30580")
 	if prom == nil {
 		// any returned value nil means error & response already written
 		return

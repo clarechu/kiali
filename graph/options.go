@@ -7,6 +7,7 @@ import (
 	"github.com/kiali/kiali/kubernetes"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	net_http "net/http"
 	"net/url"
 	"strconv"
@@ -85,7 +86,7 @@ type TelemetryOptions struct {
 
 // Options comprises all available options
 type Options struct {
-	Context         string
+	PromAddress     string
 	ConfigVendor    string
 	TelemetryVendor string
 	ConfigOptions
@@ -116,7 +117,6 @@ func NewOptions(
 	injectServiceNodesString := params.Get("injectServiceNodes")
 	namespaces := params.Get("namespaces") // csl of namespaces
 	queryTimeString := params.Get("queryTime")
-	context := params.Get("context")
 	telemetryVendor := params.Get("telemetryVendor")
 
 	if _, ok := params["appenders"]; ok {
@@ -194,7 +194,7 @@ func NewOptions(
 			Error("token missing in request context")
 		}*/
 
-	accessibleNamespaces := getAccessibleNamespacesNoToken(context)
+	accessibleNamespaces := getAccessibleNamespacesNoToken(nil)
 
 	// If path variable is set then it is the only relevant namespace (it's a node graph)
 	// Else if namespaces query param is set it specifies the relevant namespaces
@@ -226,7 +226,6 @@ func NewOptions(
 	}
 
 	options := Options{
-		Context:         context,
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{
@@ -312,7 +311,7 @@ type Option struct {
 	Appenders          string `json:"appenders"`
 }
 
-func (o *Option) NewGraphOptions() Options {
+func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Options {
 	// path variables (0 or more will be set)
 	app := o.App
 	namespace := o.Namespace
@@ -332,7 +331,6 @@ func (o *Option) NewGraphOptions() Options {
 	injectServiceNodesString := o.InjectServiceNodes
 	namespaces := o.Namespaces // csl of namespaces
 	queryTimeString := o.QueryTime
-	context := o.Context
 	telemetryVendor := o.TelemetryVendor
 
 	if o.Appenders != "" {
@@ -410,7 +408,7 @@ func (o *Option) NewGraphOptions() Options {
 			Error("token missing in request context")
 		}*/
 
-	accessibleNamespaces := getAccessibleNamespacesNoToken(context)
+	accessibleNamespaces := getAccessibleNamespacesNoToken(restConfig)
 
 	// If path variable is set then it is the only relevant namespace (it's a node graph)
 	// Else if namespaces query param is set it specifies the relevant namespaces
@@ -442,7 +440,7 @@ func (o *Option) NewGraphOptions() Options {
 	}
 
 	options := Options{
-		Context:         context,
+		PromAddress:     address,
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{
@@ -482,13 +480,9 @@ func (o *Option) NewGraphOptions() Options {
 // The Set is implemented using the map convention. Each map entry is set to the
 // creation timestamp of the namespace, to be used to ensure valid time ranges for
 // queries against the namespace.
-func getAccessibleNamespacesNoToken(context string) map[string]time.Time {
+func getAccessibleNamespacesNoToken(config *rest.Config) map[string]time.Time {
 	namespaceMap := make(map[string]time.Time)
-	configMap, err := GetConfigMap(context)
-	if err != nil {
-		return namespaceMap
-	}
-	clientSet, err := kubernetes.GetK8sClientSet(configMap.BinaryData[KubeConfig])
+	clientSet, err := kubernetes.GetK8sClientSet(config)
 	if err != nil {
 		return namespaceMap
 	}
