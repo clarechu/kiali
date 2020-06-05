@@ -63,12 +63,8 @@ func GetClientFactory() (ClientFactory, error) {
 
 // GetClientFactory returns the client factory. Creates a new one if necessary
 func GetClientFileFactory(config *rest.Config) (ClientFactory, error) {
-	if factory == nil {
-		// Create a new config based on what was gathered above but don't specify the bearer token to use
-		return getClientFactory(config, expirationTime)
-
-	}
-	return factory, nil
+	// Create a new config based on what was gathered above but don't specify the bearer token to use
+	return getClientFactory(config, expirationTime)
 }
 
 func GetK8sClientSet(config *rest.Config) (clientSet *kubernetes.Clientset, err error) {
@@ -113,18 +109,11 @@ func LoadFromFile(kubeconfigBytes []byte) (*clientcmdapi.Config, error) {
 // newClientFactory allows for specifying the config and expiry duration
 // Mock friendly for testing purposes
 func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFactory, error) {
-	mutex.Lock()
-	if factory == nil {
-		clientEntriesMap := make(map[string]*clientEntry)
-
-		factory = &clientFactory{
-			baseIstioConfig: istioConfig,
-			clientEntries:   clientEntriesMap,
-		}
-
-		go watchClients(clientEntriesMap, expiry)
+	clientEntriesMap := make(map[string]*clientEntry)
+	factory = &clientFactory{
+		baseIstioConfig: istioConfig,
+		clientEntries:   clientEntriesMap,
 	}
-	mutex.Unlock()
 	return factory, nil
 }
 
