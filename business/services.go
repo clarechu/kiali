@@ -130,6 +130,7 @@ func (in *SvcService) buildServiceList(namespace models.Namespace, svcs []core_v
 }
 
 // GetService returns a single service and associated data using the interval and queryTime
+//todo GetService cache kiali
 func (in *SvcService) GetService(namespace, service, interval string, queryTime time.Time) (*models.ServiceDetails, error) {
 	var err error
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "SvcService", "GetService")
@@ -328,11 +329,12 @@ func (in *SvcService) getServiceDefinition(namespace, service string) (svc *core
 }
 
 // GetServiceDefinitionList returns service definitions for the namespace (the service object only), no istio or runtime information
+//todo cache kiali
 func (in *SvcService) GetServiceDefinitionList(namespace string) (*models.ServiceDefinitionList, error) {
 	var err error
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "SvcService", "GetServiceDefinitionList")
 	defer promtimer.ObserveNow(&err)
-
+	kCache := *kialiCaches[in.businessLayer.Host]
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
 	if _, err = in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
@@ -341,8 +343,8 @@ func (in *SvcService) GetServiceDefinitionList(namespace string) (*models.Servic
 
 	var svcs []core_v1.Service
 	// Check if namespace is cached
-	if kialiCache != nil && kialiCache.CheckNamespace(namespace) {
-		svcs, err = kialiCache.GetServices(namespace, nil)
+	if kCache != nil && kCache.CheckNamespace(namespace) {
+		svcs, err = kCache.GetServices(namespace, nil)
 	} else {
 		svcs, err = in.k8s.GetServices(namespace, nil)
 	}

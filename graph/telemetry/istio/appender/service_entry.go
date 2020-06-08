@@ -189,6 +189,7 @@ func (a ServiceEntryAppender) getServiceEntry(serviceName string, globalInfo *gr
 	serviceEntryHosts, found := getServiceEntryHosts(globalInfo)
 	if !found {
 		for ns := range a.AccessibleNamespaces {
+			//todo cache
 			istioCfg, err := globalInfo.Business.IstioConfig.GetIstioConfigList(business.IstioConfigCriteria{
 				IncludeServiceEntries: true,
 				Namespace:             ns,
