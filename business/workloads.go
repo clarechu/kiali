@@ -154,6 +154,7 @@ func (in *WorkloadService) GetPodLogs(namespace, name string, opts *core_v1.PodL
 	return in.k8s.GetPodLogs(namespace, name, opts)
 }
 
+//fetchWorkloads 这个地方应该优化
 func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (models.Workloads, error) {
 	var pods []core_v1.Pod
 	var repcon []core_v1.ReplicationController

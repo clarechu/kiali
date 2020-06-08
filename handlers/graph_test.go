@@ -43,12 +43,12 @@ func TestGraphNode(t *testing.T) {
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
 		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
-		Namespaces:         "default",
-		Context:            "cluster03",
+		Namespaces:         "foo,kong,istio-system",
+		Context:            "cluster01",
 	}
 
-	o := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.39:30580")
-	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.39:30580")
+	o := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:21210")
+	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:21210")
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)
 	fmt.Print(code)
