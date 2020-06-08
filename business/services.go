@@ -337,9 +337,9 @@ func (in *SvcService) GetServiceDefinitionList(namespace string) (*models.Servic
 	kCache := *kialiCaches[in.businessLayer.Host]
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err = in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+/*	if _, err = in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
-	}
+	}*/
 
 	var svcs []core_v1.Service
 	// Check if namespace is cached

@@ -58,6 +58,7 @@ type (
 		cacheLock              sync.Mutex
 		tokenLock              sync.RWMutex
 		tokenNamespaces        map[string]namespaceCache
+		namespaces             []namespaceCache
 		tokenNamespaceDuration time.Duration
 	}
 )

@@ -161,9 +161,9 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 	}
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(criteria.Namespace); err != nil {
+/*	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(criteria.Namespace); err != nil {
 		return models.IstioConfigList{}, err
-	}
+	}*/
 
 	errChan := make(chan error, 20)
 
@@ -484,9 +484,9 @@ func (in *IstioConfigService) GetIstioConfigDetails(namespace, objectType, objec
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+/*	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return istioConfigDetail, err
-	}
+	}*/
 
 	var wg sync.WaitGroup
 	wg.Add(1)

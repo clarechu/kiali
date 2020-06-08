@@ -42,6 +42,7 @@ func (c *kialiCacheImpl) GetNamespaces(token string) []models.Namespace {
 	}
 }
 
+//todo cache
 func (c *kialiCacheImpl) GetNamespace(token string, namespace string) *models.Namespace {
 	defer c.tokenLock.RUnlock()
 	c.tokenLock.RLock()

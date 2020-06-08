@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 )
 
 func GetRestConfig() (restConfig *rest.Config) {
@@ -37,6 +38,7 @@ func GetRestConfig() (restConfig *rest.Config) {
 }
 
 func TestGraphNode(t *testing.T) {
+	time1 := time.Now().UnixNano()
 	config.Set(config.NewConfig())
 	option := graph.Option{
 		Duration:           "60s",
@@ -44,7 +46,7 @@ func TestGraphNode(t *testing.T) {
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
 		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
-		Namespaces:         "foo,kong,istio-system",
+		Namespaces:         "foo,kong,istio-system,default",
 		Context:            "cluster01",
 	}
 
@@ -52,6 +54,14 @@ func TestGraphNode(t *testing.T) {
 	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:21210")
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)
+	time2 := time.Now().UnixNano()
+	fmt.Println(time2 - time1)
+	o = option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:21210")
+	business, err = GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:21210")
+	graph.CheckError(err)
+	code, payload = api.GraphNamespaces(business, o)
+	time3 := time.Now().UnixNano()
+	fmt.Println(time3 - time2)
 	fmt.Print(code)
 	b, _ := json.MarshalIndent(payload, "", "")
 	fmt.Println(string(b))

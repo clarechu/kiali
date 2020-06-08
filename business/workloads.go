@@ -172,9 +172,9 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	}
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+/*	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
-	}
+	}*/
 
 	wg := sync.WaitGroup{}
 	wg.Add(8)
