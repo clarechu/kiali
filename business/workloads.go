@@ -166,13 +166,13 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	var conjbs []batch_v1beta1.CronJob
 
 	ws := models.Workloads{}
-	kCache := *kialiCaches[layer.Host]
+	kCache := *GetKialiCache(layer.Host)
 	if kCache == nil {
 		return nil, errors2.New("kiali cache not found")
 	}
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-/*	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+	/*	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
 	}*/
 

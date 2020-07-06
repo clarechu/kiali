@@ -132,6 +132,12 @@ func initKialiCaches(c *rest.Config) {
 	}
 }
 
+func GetKialiCache(context string) *cache.KialiCache {
+	syn.Lock()
+	defer syn.Unlock()
+	return kialiCaches[context]
+}
+
 // Get the business.Layer
 func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer

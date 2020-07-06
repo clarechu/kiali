@@ -155,7 +155,7 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		WorkloadEntries:        models.WorkloadEntries{},
 		RequestAuthentications: models.RequestAuthentications{},
 	}
-	kCache := *kialiCaches[in.businessLayer.Host]
+	kCache := *GetKialiCache(in.businessLayer.Host)
 	if kCache == nil {
 		return models.IstioConfigList{}, errors.New("kiali cache not found")
 	}
