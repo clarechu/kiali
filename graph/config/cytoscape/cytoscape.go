@@ -78,6 +78,7 @@ type NodeData struct {
 	IsRoot          bool                `json:"isRoot,omitempty"`          // true | false
 	IsServiceEntry  string              `json:"isServiceEntry,omitempty"`  // set to the location, current values: [ 'MESH_EXTERNAL', 'MESH_INTERNAL' ]
 	IsUnused        bool                `json:"isUnused,omitempty"`        // true | false
+	Context         string              `json:"context,omitempty"`
 }
 
 type EdgeData struct {
