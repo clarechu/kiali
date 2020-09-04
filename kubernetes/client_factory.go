@@ -54,7 +54,6 @@ func GetClientFactory() (ClientFactory, error) {
 			QPS:             config.QPS,
 			Burst:           config.Burst,
 		}
-
 		return getClientFactory(&istioConfig, expirationTime)
 
 	}
@@ -110,15 +109,10 @@ func LoadFromFile(kubeconfigBytes []byte) (*clientcmdapi.Config, error) {
 // Mock friendly for testing purposes
 func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFactory, error) {
 	mutex.Lock()
-	if factory == nil {
-		clientEntriesMap := make(map[string]*clientEntry)
-
-		factory = &clientFactory{
-			baseIstioConfig: istioConfig,
-			clientEntries:   clientEntriesMap,
-		}
-
-		go watchClients(clientEntriesMap, expiry)
+	clientEntriesMap := make(map[string]*clientEntry)
+	factory = &clientFactory{
+		baseIstioConfig: istioConfig,
+		clientEntries:   clientEntriesMap,
 	}
 	mutex.Unlock()
 	return factory, nil
