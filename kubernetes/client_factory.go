@@ -63,12 +63,8 @@ func GetClientFactory() (ClientFactory, error) {
 
 // GetClientFactory returns the client factory. Creates a new one if necessary
 func GetClientFileFactory(config *rest.Config) (ClientFactory, error) {
-	if factory == nil {
-		// Create a new config based on what was gathered above but don't specify the bearer token to use
-		return getClientFactory(config, expirationTime)
-
-	}
-	return factory, nil
+	// Create a new config based on what was gathered above but don't specify the bearer token to use
+	return getClientFactory(config, expirationTime)
 }
 
 func GetK8sClientSet(config *rest.Config) (clientSet *kubernetes.Clientset, err error) {
