@@ -29,6 +29,11 @@ var (
 // is represented as a percentile value. The default is 95th percentile, which means that
 // 95% of requests executed in no more than the resulting milliseconds. ResponeTime values are
 // reported in milliseconds.
+//ResponseTimeAppender负责将responseTime信息添加到图形中。
+//ResponseTime
+//表示为百分比值。默认值为95％，这意味着
+//95％的请求在不超过结果毫秒的时间内执行。 ResponseTime值 以毫秒为单位报告。
+
 // Name: responseTime
 type ResponseTimeAppender struct {
 	GraphType          string

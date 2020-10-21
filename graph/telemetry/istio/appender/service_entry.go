@@ -37,7 +37,7 @@ const ServiceEntryAppenderName = "serviceEntry"
 // many different service requests may be handled by the same service entry definition.  For example,
 // host = *.wikipedia.com would match requests for en.wikipedia.com and de.wikipedia.com. The Istio
 // telemetry produces only one "se-service" node with the wilcard host as the destination_service_name.
-//
+//这个有点复杂 主要负责
 type ServiceEntryAppender struct {
 	AccessibleNamespaces map[string]time.Time
 	GraphType            string // This appender does not operate on service graphs because it adds workload nodes.
@@ -103,7 +103,7 @@ func aggregateEdges(node *graph.Node, serviceEntryNode *graph.Node) {
 func (a ServiceEntryAppender) applyServiceEntries(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
 	// a map of "se-service" nodes to the "se-aggregate" information
 	seMap := make(map[*serviceEntry][]*graph.Node)
-
+	// 找到所有的service entry node 节点
 	for _, n := range trafficMap {
 		// only a service node can be a service entry
 		if n.NodeType != graph.NodeTypeService {
@@ -132,12 +132,15 @@ func (a ServiceEntryAppender) applyServiceEntries(trafficMap graph.TrafficMap, g
 	}
 
 	// Replace "se-service" nodes with an "se-aggregate" serviceEntry node
+	// 如果有 service entry
 	for se, seServiceNodes := range seMap {
 		serviceEntryNode := graph.NewNode(namespaceInfo.Namespace, se.name, "", "", "", "", a.GraphType)
 		serviceEntryNode.Metadata[graph.IsServiceEntry] = se.location
 		serviceEntryNode.Metadata[graph.DestServices] = graph.NewDestServicesMetadata()
+		// 以上是新建一个node
 		for _, doomedSeServiceNode := range seServiceNodes {
 			// aggregate node traffic
+			//doomedSeServiceNode 一个SeServiceNode 节点
 			graph.AggregateNodeTraffic(doomedSeServiceNode, &serviceEntryNode)
 			// aggregate node dest-services to capture all of the distinct requested services
 			if destServices, ok := doomedSeServiceNode.Metadata[graph.DestServices]; ok {
@@ -146,6 +149,7 @@ func (a ServiceEntryAppender) applyServiceEntries(trafficMap graph.TrafficMap, g
 				}
 			}
 			// redirect edges leading to the doomed se-service node to the new aggregate
+			// 将导致注定失败的se-service节点的边缘重定向到新的聚合
 			for _, n := range trafficMap {
 				for _, edge := range n.Edges {
 					if edge.Dest.ID == doomedSeServiceNode.ID {

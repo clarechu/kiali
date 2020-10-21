@@ -12,6 +12,7 @@ import (
 const IstioAppenderName = "istio"
 
 // IstioAppender is responsible for badging nodes with special Istio significance:
+// 负责标记具有特殊Istio意义的节点：
 // - CircuitBreaker: n.Metadata[HasCB] = true
 // - VirtualService: n.Metadata[HasVS] = true
 // Name: istio
@@ -150,6 +151,6 @@ func addLabels(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo
 	}
 }
 
-func (a IstioAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client)  {
+func (a IstioAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
 
 }

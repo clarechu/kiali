@@ -113,6 +113,7 @@ type Config struct {
 	Elements  Elements `json:"elements"`
 }
 
+//id 经过md5 hash过了
 func nodeHash(id string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(id)))
 }

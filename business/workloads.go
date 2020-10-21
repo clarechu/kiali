@@ -41,6 +41,7 @@ func isWorkloadIncluded(workload string) bool {
 }
 
 // GetWorkloadList is the API handler to fetch the list of workloads in a given namespace.
+// 查找所有 workload 工作负载
 func (in *WorkloadService) GetWorkloadList(namespace string) (models.WorkloadList, error) {
 	var err error
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "WorkloadService", "GetWorkloadList")
@@ -168,6 +169,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
+	//检查用户是否可以在缓存方案中访问名称空间（RBAC）和
+	//是否可以从Kiali（Deployment.AccessibleNamespaces）访问名称空间
 	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
 	}
@@ -289,11 +292,13 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		err := <-errChan
 		return ws, err
 	}
+	// 以上部分是找到所有的控制器以及pod
 
 	// Key: name of controller; Value: type of controller
 	controllers := map[string]string{}
 
 	// Find controllers from pods
+	// 把pod放到控制器中
 	for _, pod := range pods {
 		if len(pod.OwnerReferences) != 0 {
 			for _, ref := range pod.OwnerReferences {
@@ -470,6 +475,7 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	for k := range controllers {
 		cnames = append(cnames, k)
 	}
+	//cnames 这个玩意是啥
 	sort.Strings(cnames)
 	for _, cname := range cnames {
 		w := &models.Workload{

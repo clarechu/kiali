@@ -76,6 +76,7 @@ type RequestedAppenders struct {
 
 // TelemetryOptions are those supplied to Telemetry Vendors
 type TelemetryOptions struct {
+	// AccessibleNamespaces 可访问的命名空间
 	AccessibleNamespaces map[string]time.Time
 	Appenders            RequestedAppenders // requested appenders, nil if param not supplied
 	InjectServiceNodes   bool               // inject destination service nodes between source and destination nodes.

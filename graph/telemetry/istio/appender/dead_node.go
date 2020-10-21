@@ -7,6 +7,7 @@ import (
 const DeadNodeAppenderName = "deadNode"
 
 // DeadNodeAppender is responsible for removing from the graph unwanted nodes:
+// 负责从图中删除不需要的节点：
 // - nodes for which there is no traffic reported and a backing workload that can't be found
 //   (presumably removed from K8S). (kiali-621)
 //   - this includes "unknown"
@@ -86,6 +87,8 @@ func (a DeadNodeAppender) applyDeadNodes(trafficMap graph.TrafficMap, globalInfo
 			}
 
 			// Remove if backing workload is not defined (always true for "unknown"), flag if there are no pods
+			//如果未定义后备工作负载，则将其删除（对于“未知”始终为true），如果没有吊舱，则进行标记
+			// 如果后续的工作负载没有的话 就删掉
 			if workload, found := getWorkload(n.Workload, namespaceInfo); !found {
 				delete(trafficMap, id)
 				numRemoved++
@@ -96,7 +99,6 @@ func (a DeadNodeAppender) applyDeadNodes(trafficMap graph.TrafficMap, globalInfo
 			}
 		}
 	}
-
 	// If we removed any nodes we need to remove any edges to them as well...
 	if numRemoved == 0 {
 		return

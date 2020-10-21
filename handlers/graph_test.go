@@ -16,7 +16,7 @@ import (
 )
 
 func GetRestConfig() (restConfig *rest.Config) {
-	path := "/Users/clare/config"
+	path := "/Users/clare/.kube/config"
 	file, err := os.Open(path)
 	if err != nil {
 		return
@@ -43,12 +43,12 @@ func TestGraphNode(t *testing.T) {
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
 		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
-		Namespaces:         "default",
-		Context:            "cluster03",
+		Namespaces:         "poc-demo",
+		Context:            "cluster02",
 	}
 
-	o := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.39:30580")
-	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.39:30580")
+	o := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:9090")
+	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090")
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)
 	fmt.Print(code)

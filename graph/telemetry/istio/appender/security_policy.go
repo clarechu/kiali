@@ -20,6 +20,8 @@ const (
 // SecurityPolicyAppender is responsible for adding securityPolicy information to the graph.
 // The appender currently reports only mutual_tls security although is written in a generic way.
 // Name: securityPolicy
+// SecurityPolicyAppender负责向图表添加securityPolicy信息。
+//尽管以通用方式编写，但该附加程序当前仅报告international_tls安全性。
 type SecurityPolicyAppender struct {
 	GraphType          string
 	InjectServiceNodes bool

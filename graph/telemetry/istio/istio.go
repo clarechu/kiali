@@ -56,6 +56,7 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 
 	for _, namespace := range o.Namespaces {
 		log.Tracef("Build traffic map for namespace [%s]", namespace)
+		//生成一个 namespaceTrafficMap
 		namespaceTrafficMap := buildNamespaceTrafficMap(namespace.Name, o, client)
 		namespaceInfo := graph.NewAppenderNamespaceInfo(namespace.Name)
 		for _, a := range appenders {
@@ -63,6 +64,7 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 			a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
 			appenderTimer.ObserveDuration()
 		}
+		// 将 namespaceTrafficMap merge ---->  trafficMap 中
 		telemetry.MergeTrafficMaps(trafficMap, namespace.Name, namespaceTrafficMap)
 	}
 
@@ -82,6 +84,7 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 
 // buildNamespaceTrafficMap returns a map of all namespace nodes (key=id).  All
 // nodes either directly send and/or receive requests from a node in the namespace.
+// 返回所有名称空间节点（key = id）的映射。所有节点都直接从名称空间中的节点发送和/或接收请求。
 func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client *prometheus.Client) graph.TrafficMap {
 	// create map to aggregate traffic by protocol and response code
 	trafficMap := graph.NewTrafficMap()

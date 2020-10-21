@@ -10,6 +10,9 @@ const SidecarsCheckAppenderName = "sidecarsCheck"
 // SidecarsCheckAppender flags nodes whose backing workloads are missing at least one Envoy sidecar. Note that
 // a node with no backing workloads is not flagged.
 // Name: sidecarsCheck
+// SidecarsCheckAppender标记其后备工作负载缺少至少一个Envoy sidecar的节点。请注意，
+// 没有后备工作负载的节点未标记。
+// 名称：sidecarsCheck
 type SidecarsCheckAppender struct{}
 
 // Name implements Appender

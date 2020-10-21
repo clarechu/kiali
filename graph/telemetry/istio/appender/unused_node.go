@@ -12,6 +12,12 @@ const UnusedNodeAppenderName = "unusedNode"
 // UnusedNodeAppender looks for services that have never seen request traffic.  It adds nodes to represent the
 // unused definitions.  The added node types depend on the graph type and/or labeling on the definition.
 // Name: unusedNode
+// GetGoFunctionMetric返回一个Success或FailureMetricType对象，该对象可用于存储
+// 调用函数成功时，函数处理时间指标的持续时间值。
+// 如果不成功，则递增失败计数器。
+// 如果围棋函数不在一个类型上（即是一个全局函数），请为goType传入一个空字符串。
+// 当该函数返回时，定时器立即开始计时。
+// 请参阅 SuccessOrFailureMetricType 的注释，了解如何使用返回的对象。
 type UnusedNodeAppender struct {
 	GraphType          string
 	InjectServiceNodes bool // This appender addes unused services only when service node are injected or graphType=service
