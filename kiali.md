@@ -1,5 +1,8 @@
 # kiali 源码解析
 
+[中文简体](http://git.cloud2go.cn/service-mesh/kiali/blob/cloudtogo/kiali.md)
+
+
 前言: 
 
 Kiali是用于基于Istio的服务网格的管理控制台。它提供仪表板，可观察性，并允许您使用强大的配置和验证功能来操作网格。它通过推断流量拓扑来显示服务网格的结构，并显示网格的运行状况。Kiali提供了详细的指标，强大的验证，Grafana访问以及与Jaeger进行分布式跟踪的强大集成。
