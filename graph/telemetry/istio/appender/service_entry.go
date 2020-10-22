@@ -59,7 +59,6 @@ func (a ServiceEntryAppender) AppendGraph(trafficMap graph.TrafficMap, globalInf
 	return nil
 }
 
-
 // aggregateEdges identifies edges that are going from <node> to <serviceEntryNode> and
 // aggregates them in only one edge per protocol. This ensures that the traffic map
 // will comply with the assumption/rule of one edge per protocol between any two nodes.
@@ -234,8 +233,6 @@ func (a ServiceEntryAppender) getServiceEntry(serviceName string, globalInfo *gr
 
 	return nil, false
 }
-
-
 
 func (a ServiceEntryAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
 

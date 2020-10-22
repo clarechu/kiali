@@ -116,9 +116,6 @@ func (a UnusedNodeAppender) buildUnusedTrafficMap(trafficMap graph.TrafficMap, n
 	return unusedTrafficMap
 }
 
-
-
-
 func (a UnusedNodeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
 
 }
