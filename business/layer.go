@@ -30,6 +30,7 @@ type Layer struct {
 	Iter8          Iter8Service
 	IstioStatus    IstioStatusService
 	PromAddress    string
+	Host           string
 }
 
 // Global clientfactory and prometheus clients.
@@ -52,10 +53,6 @@ func initKialiCache() {
 			excludedWorkloads[w] = true
 		}
 	}
-}
-
-func GetUnauthenticated() (*Layer, error) {
-	return Get("")
 }
 
 // Get the business.Layer
@@ -109,9 +106,42 @@ func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
 	return clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
 }
 
+var kialiCaches map[string]*cache.KialiCache
+var syn sync.Mutex
+
+func initKialiCaches(c *rest.Config) {
+	syn.Lock()
+	defer syn.Unlock()
+	if kialiCaches == nil {
+		kialiCaches = map[string]*cache.KialiCache{}
+	}
+	if kialiCaches[c.Host] == nil {
+		if config.Get().KubernetesConfig.CacheEnabled {
+			if newKialiCache, err := cache.NewCache(c); err != nil {
+				log.Errorf("Error initializing Kiali Cache. Details: %s", err)
+			} else {
+				kialiCaches[c.Host] = &newKialiCache
+			}
+		}
+		if excludedWorkloads == nil {
+			excludedWorkloads = make(map[string]bool)
+			for _, w := range config.Get().KubernetesConfig.ExcludeWorkloads {
+				excludedWorkloads[w] = true
+			}
+		}
+	}
+}
+
+func GetKialiCache(context string) *cache.KialiCache {
+	syn.Lock()
+	defer syn.Unlock()
+	return kialiCaches[context]
+}
+
 // Get the business.Layer
 func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
+	initKialiCaches(config)
 	userClient, err := kubernetes.GetClientFileFactory(config)
 	if err != nil {
 		return nil, err
@@ -138,6 +168,7 @@ func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 	}
 	layer := NewWithBackends(k8s, prometheusClient, jaegerLoader)
 	layer.PromAddress = promAddress
+	layer.Host = config.Host
 	return layer, nil
 }
 

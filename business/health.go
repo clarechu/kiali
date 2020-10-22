@@ -168,9 +168,9 @@ func (in *HealthService) GetNamespaceServiceHealth(namespace, rateInterval strin
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err = in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+	/*	if _, err = in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
-	}
+	}*/
 
 	// Check if namespace is cached
 	if kialiCache != nil && kialiCache.CheckNamespace(namespace) {

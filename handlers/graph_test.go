@@ -32,6 +32,7 @@ func GetRestConfig() (restConfig *rest.Config) {
 			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
 			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
 		},
+		//Timeout: time.Second * 5,
 	}
 	return restConfig
 }

@@ -58,6 +58,7 @@ type (
 		cacheLock              sync.Mutex
 		tokenLock              sync.RWMutex
 		tokenNamespaces        map[string]namespaceCache
+		namespaces             []namespaceCache
 		tokenNamespaceDuration time.Duration
 	}
 )
@@ -82,6 +83,46 @@ func NewKialiCache() (KialiCache, error) {
 		Burst:           config.Burst,
 	}
 	istioClient, err := kubernetes.NewClientFromConfig(&istioConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshDuration := time.Duration(kConfig.KubernetesConfig.CacheDuration) * time.Second
+	tokenNamespaceDuration := time.Duration(kConfig.KubernetesConfig.CacheTokenNamespaceDuration) * time.Second
+	cacheNamespaces := kConfig.KubernetesConfig.CacheNamespaces
+	cacheIstioTypes := make(map[string]bool)
+	for _, iType := range kConfig.KubernetesConfig.CacheIstioTypes {
+		cacheIstioTypes[iType] = true
+	}
+	log.Tracef("[Kiali Cache] cacheIstioTypes %v", cacheIstioTypes)
+
+	stopChan := make(map[string]chan struct{})
+
+	for _, ns := range cacheNamespaces {
+		stopChan[ns] = make(chan struct{})
+	}
+
+	kialiCacheImpl := kialiCacheImpl{
+		istioClient:            *istioClient,
+		refreshDuration:        refreshDuration,
+		cacheNamespaces:        cacheNamespaces,
+		cacheIstioTypes:        cacheIstioTypes,
+		stopChan:               stopChan,
+		nsCache:                make(map[string]typeCache),
+		tokenNamespaces:        make(map[string]namespaceCache),
+		tokenNamespaceDuration: tokenNamespaceDuration,
+	}
+
+	kialiCacheImpl.k8sApi = istioClient.GetK8sApi()
+	kialiCacheImpl.istioNetworkingGetter = istioClient.GetIstioNetworkingApi()
+
+	log.Infof("Kiali Cache is active for namespaces %v", cacheNamespaces)
+	return &kialiCacheImpl, nil
+}
+
+func NewCache(istioConfig *rest.Config) (KialiCache, error) {
+	kConfig := kialiConfig.Get()
+	istioClient, err := kubernetes.NewClientFromConfig(istioConfig)
 	if err != nil {
 		return nil, err
 	}

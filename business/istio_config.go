@@ -121,6 +121,7 @@ var newIstioConfigTypes = []string{
 
 // GetIstioConfigList returns a list of Istio routing objects, Mixer Rules, (etc.)
 // per a given Namespace.
+//todo kiali cache
 func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (models.IstioConfigList, error) {
 	var err error
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "IstioConfigService", "GetIstioConfigList")
@@ -154,12 +155,15 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 		WorkloadEntries:        models.WorkloadEntries{},
 		RequestAuthentications: models.RequestAuthentications{},
 	}
-
+	kCache := *GetKialiCache(in.businessLayer.Host)
+	if kCache == nil {
+		return models.IstioConfigList{}, errors.New("kiali cache not found")
+	}
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(criteria.Namespace); err != nil {
+	/*	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(criteria.Namespace); err != nil {
 		return models.IstioConfigList{}, err
-	}
+	}*/
 
 	errChan := make(chan error, 20)
 
@@ -172,8 +176,8 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var gg []kubernetes.IstioObject
 			var ggErr error
 			// Check if namespace is cached
-			if kialiCache != nil && kialiCache.CheckIstioResource(kubernetes.GatewayType) && kialiCache.CheckNamespace(criteria.Namespace) {
-				gg, ggErr = kialiCache.GetIstioResources(kubernetes.GatewayType, criteria.Namespace)
+			if kCache != nil && kCache.CheckIstioResource(kubernetes.GatewayType) && kCache.CheckNamespace(criteria.Namespace) {
+				gg, ggErr = kCache.GetIstioResources(kubernetes.GatewayType, criteria.Namespace)
 			} else {
 				gg, ggErr = in.k8s.GetGateways(criteria.Namespace)
 			}
@@ -191,8 +195,8 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var vs []kubernetes.IstioObject
 			var vsErr error
 			// Check if namespace is cached
-			if kialiCache != nil && kialiCache.CheckIstioResource(kubernetes.VirtualServiceType) && kialiCache.CheckNamespace(criteria.Namespace) {
-				vs, vsErr = kialiCache.GetIstioResources(kubernetes.VirtualServiceType, criteria.Namespace)
+			if kCache != nil && kCache.CheckIstioResource(kubernetes.VirtualServiceType) && kCache.CheckNamespace(criteria.Namespace) {
+				vs, vsErr = kCache.GetIstioResources(kubernetes.VirtualServiceType, criteria.Namespace)
 			} else {
 				vs, vsErr = in.k8s.GetVirtualServices(criteria.Namespace, "")
 			}
@@ -210,8 +214,8 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var dr []kubernetes.IstioObject
 			var drErr error
 			// Check if namespace is cached
-			if kialiCache != nil && kialiCache.CheckIstioResource(kubernetes.DestinationRuleType) && kialiCache.CheckNamespace(criteria.Namespace) {
-				dr, drErr = kialiCache.GetIstioResources(kubernetes.DestinationRuleType, criteria.Namespace)
+			if kCache != nil && kCache.CheckIstioResource(kubernetes.DestinationRuleType) && kCache.CheckNamespace(criteria.Namespace) {
+				dr, drErr = kCache.GetIstioResources(kubernetes.DestinationRuleType, criteria.Namespace)
 			} else {
 				dr, drErr = in.k8s.GetDestinationRules(criteria.Namespace, "")
 			}
@@ -229,8 +233,8 @@ func (in *IstioConfigService) GetIstioConfigList(criteria IstioConfigCriteria) (
 			var se []kubernetes.IstioObject
 			var seErr error
 			// Check if namespace is cached
-			if kialiCache != nil && kialiCache.CheckIstioResource(kubernetes.ServiceentryType) && kialiCache.CheckNamespace(criteria.Namespace) {
-				se, seErr = kialiCache.GetIstioResources(kubernetes.ServiceentryType, criteria.Namespace)
+			if kCache != nil && kCache.CheckIstioResource(kubernetes.ServiceentryType) && kCache.CheckNamespace(criteria.Namespace) {
+				se, seErr = kCache.GetIstioResources(kubernetes.ServiceentryType, criteria.Namespace)
 			} else {
 				se, seErr = in.k8s.GetServiceEntries(criteria.Namespace)
 			}
@@ -480,9 +484,9 @@ func (in *IstioConfigService) GetIstioConfigDetails(namespace, objectType, objec
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+	/*	if _, err := in.businessLayer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return istioConfigDetail, err
-	}
+	}*/
 
 	var wg sync.WaitGroup
 	wg.Add(1)

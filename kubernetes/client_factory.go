@@ -108,13 +108,11 @@ func LoadFromFile(kubeconfigBytes []byte) (*clientcmdapi.Config, error) {
 // newClientFactory allows for specifying the config and expiry duration
 // Mock friendly for testing purposes
 func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFactory, error) {
-	mutex.Lock()
 	clientEntriesMap := make(map[string]*clientEntry)
 	factory = &clientFactory{
 		baseIstioConfig: istioConfig,
 		clientEntries:   clientEntriesMap,
 	}
-	mutex.Unlock()
 	return factory, nil
 }
 
