@@ -178,18 +178,18 @@ type Appender interface {
 
 appender中有几种实现
 
-istio: 负责标记具有特殊Istio意义的节点
-deadNode: 负责从图中删除不需要的节点
-serviceEntry: ServiceEntryAppender负责标识在Istio中定义为serviceEntry的服务节点。
+* istio: 负责标记具有特殊Istio意义的节点
+* deadNode: 负责从图中删除不需要的节点
+* serviceEntry: ServiceEntryAppender负责标识在Istio中定义为serviceEntry的服务节点。
 单个serviceEntry可以定义多个主机，
 因此多个服务节点可以
 映射到单个serviceEntry的不同主机。我们将这些称为“ se-service”节点
-responseTime: ResponseTimeAppender负责将responseTime信息添加到图形中
-securityPolicy: SecurityPolicyAppender负责向图表添加securityPolicy信息。
+* responseTime: ResponseTimeAppender负责将responseTime信息添加到图形中
+* securityPolicy: SecurityPolicyAppender负责向图表添加securityPolicy信息。
 尽管以通用方式编写，但该附加程序当前仅报告international_tls安全性。
-sidecarsCheck: SidecarsCheckAppender标记其后备工作负载缺少至少一个Envoy sidecar的节点。请注意，
+* sidecarsCheck: SidecarsCheckAppender标记其后备工作负载缺少至少一个Envoy sidecar的节点。请注意，
 没有后备工作负载的节点未标记。
-unusedNode: 调用函数成功时，函数处理时间指标的持续时间值。
+* unusedNode: 调用函数成功时，函数处理时间指标的持续时间值。
 如果不成功，则递增失败计数器。
 如果围棋函数不在一个类型上（即是一个全局函数），请为goType传入一个空字符串。
 当该函数返回时，定时器立即开始计时。
