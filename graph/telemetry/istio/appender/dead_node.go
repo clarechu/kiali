@@ -1,7 +1,9 @@
 package appender
 
 import (
+	"errors"
 	"github.com/kiali/kiali/graph"
+	"github.com/kiali/kiali/prometheus"
 )
 
 const DeadNodeAppenderName = "deadNode"
@@ -22,18 +24,21 @@ func (a DeadNodeAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a DeadNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a DeadNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if getWorkloadList(namespaceInfo) == nil {
 		workloadList, err := globalInfo.Business.Workload.GetWorkloadList(namespaceInfo.Namespace)
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 		namespaceInfo.Vendor[workloadListKey] = &workloadList
 	}
 
 	a.applyDeadNodes(trafficMap, globalInfo, namespaceInfo)
+	return nil
 }
 
 func (a DeadNodeAppender) applyDeadNodes(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
@@ -113,4 +118,9 @@ func (a DeadNodeAppender) applyDeadNodes(trafficMap graph.TrafficMap, globalInfo
 		}
 		s.Edges = goodEdges
 	}
+}
+
+
+func (a DeadNodeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
+
 }

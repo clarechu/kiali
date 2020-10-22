@@ -1,10 +1,12 @@
 package appender
 
 import (
+	"errors"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
+	"github.com/kiali/kiali/prometheus"
 )
 
 const UnusedNodeAppenderName = "unusedNode"
@@ -30,9 +32,9 @@ func (a UnusedNodeAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if a.IsNodeGraph {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	services := []models.ServiceDetails{}
@@ -50,13 +52,16 @@ func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo 
 	if a.GraphType == graph.GraphTypeService || a.InjectServiceNodes {
 		if getServiceDefinitionList(namespaceInfo) == nil {
 			sdl, err := globalInfo.Business.Svc.GetServiceDefinitionList(namespaceInfo.Namespace)
-			graph.CheckError(err)
+			if err != nil {
+				return err
+			}
 			namespaceInfo.Vendor[serviceDefinitionListKey] = sdl
 		}
 		services = getServiceDefinitionList(namespaceInfo).ServiceDefinitions
 	}
 
 	a.addUnusedNodes(trafficMap, namespaceInfo.Namespace, services, workloads)
+	return nil
 }
 
 func (a UnusedNodeAppender) addUnusedNodes(trafficMap graph.TrafficMap, namespace string, services []models.ServiceDetails, workloads []models.WorkloadListItem) {
@@ -109,4 +114,11 @@ func (a UnusedNodeAppender) buildUnusedTrafficMap(trafficMap graph.TrafficMap, n
 		}
 	}
 	return unusedTrafficMap
+}
+
+
+
+
+func (a UnusedNodeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
+
 }

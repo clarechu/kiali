@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"github.com/kiali/kiali/business"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/graph"
@@ -24,20 +25,23 @@ func (a IstioAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a IstioAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a IstioAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if getServiceDefinitionList(namespaceInfo) == nil {
 		sdl, err := globalInfo.Business.Svc.GetServiceDefinitionList(namespaceInfo.Namespace)
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 		namespaceInfo.Vendor[serviceDefinitionListKey] = sdl
 	}
 	sdl := getServiceDefinitionList(namespaceInfo)
 
 	addBadging(trafficMap, globalInfo, namespaceInfo)
 	addLabels(trafficMap, globalInfo, sdl)
+	return nil
 }
 
 func addBadging(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {

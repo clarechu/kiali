@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -37,18 +38,21 @@ func (a SecurityPolicyAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a SecurityPolicyAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a SecurityPolicyAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if globalInfo.PromClient == nil {
 		var err error
 		globalInfo.PromClient, err = prometheus.NewClient()
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 	}
 
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
+	return nil
 }
 
 func (a SecurityPolicyAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {

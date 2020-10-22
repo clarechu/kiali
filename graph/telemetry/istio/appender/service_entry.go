@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"github.com/kiali/kiali/prometheus"
 	"strings"
 	"time"
@@ -49,29 +50,15 @@ func (a ServiceEntryAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a ServiceEntryAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a ServiceEntryAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	a.applyServiceEntries(trafficMap, globalInfo, namespaceInfo)
+	return nil
 }
 
-func (a ServiceEntryAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
-
-}
-
-func (a DeadNodeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
-
-}
-
-func (a UnusedNodeAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
-
-}
-
-func (a SidecarsCheckAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
-
-}
 
 // aggregateEdges identifies edges that are going from <node> to <serviceEntryNode> and
 // aggregates them in only one edge per protocol. This ensures that the traffic map
@@ -246,4 +233,10 @@ func (a ServiceEntryAppender) getServiceEntry(serviceName string, globalInfo *gr
 	}
 
 	return nil, false
+}
+
+
+
+func (a ServiceEntryAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
+
 }

@@ -27,14 +27,13 @@ services:
       AMQP_USER: ${AMQP_USER}
       AMQP_PASSWORD: ${AMQP_PASSWORD}
 
-docker run -p 8030:8080 -e INFRA=${INFRA_SERVER_HOST} \
+docker run -d -p 8030:8080 -e INFRA=${INFRA_SERVER_HOST} \
       APP_PROFILES_ACTIVE: ${APP_PROFILES_ACTIVE} \
       SOCKET_URL: ws://pipeline.${DOMAIN} \
       ES_URL: ${ES_URL}\
       ES_TOKEN: ${ES_TOKEN}\
       MYSQL_HOST: ${INFRA_SERVER_HOST}\
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}\
-      #LOG_URL: ws://${INFRA_SERVER_HOST}:8884\
       AMQP_HOST: ${INFRA_SERVER_HOST}\
       AMQP_USER: ${AMQP_USER}\
       AMQP_PASSWORD: ${AMQP_PASSWORD}\
@@ -84,6 +83,10 @@ docker run -p 8030:8080 -e INFRA: ${INFRA_SERVER_HOST}:8030 \
       DEBUG: "main*,utils*" \
       DEBUG_COLORS: "on" \
       -d ${IMAGE_GROUP}/pipeline-web:RC4.27.1.gree npm run simple
+
+
+
+
   pipeline-log:
     image: ${IMAGE_GROUP}/pipeline-log:RC4.27.1.gree
     container_name: pipeline-log
@@ -102,13 +105,17 @@ docker run -p 8030:8080 -e INFRA: ${INFRA_SERVER_HOST}:8030 \
       - /etc/orchor/ocp.conf:/etc/conf/ocp.conf:ro
 
 
-    docker run -p 8884:8080 -d ${IMAGE_GROUP}/pipeline-log:RC4.27.1.gree -v /etc/orchor/ocp.conf:/etc/conf/ocp.conf:ro -e ES_URL: ${ES_URL} \
+    docker run -p 8884:8080 -d \
+    # 这个/etc/orchor/ocp.conf地址看看 开芬他们填的是啥 我们的这个就填啥东西
+      -v /etc/orchor/ocp.conf:/etc/conf/ocp.conf:ro \
+      -e ES_URL: ${ES_URL} \
       -e ES_TOKEN: ${ES_TOKEN} \
       -e MONGO_HOST: ${INFRA_SERVER_HOST} \
       -e IS_OCP: "true" \
       -e CONF_PATH: /etc/conf/ocp.conf \
       -e TURTLE_URL: ${INFRA_SERVER_HOST}:16013 \
-      -e APP_PROFILES_ACTIVE: env ${IMAGE_GROUP}/pipeline-log:RC4.27.1.gree
+      -e APP_PROFILES_ACTIVE: env \
+       ${IMAGE_GROUP}/pipeline-log:RC4.27.1.gree
 
 ```
 
@@ -116,6 +123,8 @@ docker run -p 8030:8080 -e INFRA: ${INFRA_SERVER_HOST}:8030 \
 
 ```text
 IMAGE_GROUP=harbor.cloud2go.cn/cloudos-dev
+
+# INFRA 的ip 地址
 
 INFRA_SERVER_HOST=10.10.13.160
 DOMAIN=uat.cloudos.gree
@@ -137,23 +146,6 @@ AMQP_PASSWORD=foeTtehtgiEApFR
 # mysql password
 MYSQL_PASSWORD=foeTtehtgiEApFR
 
-# mail smtp协议 username
-MAIL_SMTP_USERNAME=pipeline@cloudtogo.cn
-# mail smtp协议 password
-MAIL_SMTP_PASSWORD=9191!1N1
-# mail smtp协议 host
-MAIL_SMTP_HOST=smtp.mxhichina.com
-# mail smtp协议 port
-MAIL_SMTP_PORT=465
-# mail pop3协议 username
-MAIL_POP3_USERNAME=pipeline@cloudtogo.cn
-# mail pop3协议 password
-MAIL_POP3_PASSWORD=9191!1N1
-# mail pop3协议 host
-MAIL_POP3_HOST=pop3.mxhichina.com
-# mail pop3协议 port
-MAIL_POP3_PORT=110
 # 控制前端在headers里面传不传token字段 根据环境改变
 JWT_TOKEN_KEY=token
 ```
-

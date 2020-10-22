@@ -423,7 +423,8 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 				IsIstio:  config.IsIstioNamespace(namespaceToken),
 			}
 		} else {
-			return Options{}, fmt.Errorf("requested namespace [%s] is not accessible", namespaceToken)
+			log.Errorf("requested namespace [%s] is not accessible", namespaceToken)
+			continue
 		}
 	}
 

@@ -62,7 +62,10 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 		namespaceInfo := graph.NewAppenderNamespaceInfo(namespace.Name)
 		for _, a := range appenders {
 			appenderTimer := internalmetrics.GetGraphAppenderTimePrometheusTimer(a.Name())
-			a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
+			err := a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
+			if err != nil {
+				break
+			}
 			appenderTimer.ObserveDuration()
 		}
 		// 将 namespaceTrafficMap merge ---->  trafficMap 中

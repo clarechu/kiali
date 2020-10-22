@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -49,18 +50,21 @@ func (a ResponseTimeAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a ResponseTimeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a ResponseTimeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if globalInfo.PromClient == nil {
 		var err error
 		globalInfo.PromClient, err = prometheus.NewClient()
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 	}
 
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
+	return nil
 }
 
 // AppendGraph implements Appender

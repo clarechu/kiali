@@ -45,7 +45,7 @@ func TestGraphNode(t *testing.T) {
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
 		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
-		Namespaces:         "poc-demo",
+		Namespaces:         "poc-demo,poc",
 		Context:            "cluster02",
 	}
 
