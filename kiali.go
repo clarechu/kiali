@@ -55,7 +55,7 @@ func init() {
 }
 
 //main 入口 找到你了 。。。。
-func main() {
+func main1() {
 	defer glog.Flush()
 	util.Clock = util.RealClock{}
 
