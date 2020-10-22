@@ -176,7 +176,7 @@ type Appender interface {
 
 ```
 
-appender中有几种实现
+#### appender中有几种实现
 
 * istio: 负责标记具有特殊Istio意义的节点
 * deadNode: 负责从图中删除不需要的节点
