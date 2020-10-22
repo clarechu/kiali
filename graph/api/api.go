@@ -14,7 +14,7 @@ import (
 )
 
 // GraphNamespaces generates a namespaces graph using the provided options
-func GraphNamespaces(business *business.Layer, o graph.Options) (code int, config interface{}) {
+func GraphNamespaces(business *business.Layer, o graph.Options) (code int, config interface{}, err error) {
 	// time how long it takes to generate this graph
 	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
 	defer promtimer.ObserveDuration()
@@ -22,7 +22,9 @@ func GraphNamespaces(business *business.Layer, o graph.Options) (code int, confi
 	switch o.TelemetryVendor {
 	case graph.VendorIstio:
 		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
-		graph.CheckError(err)
+		if err != nil {
+			return 0, nil, err
+		}
 		code, config = graphNamespacesIstio(business, prom, o)
 	default:
 		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
@@ -31,7 +33,7 @@ func GraphNamespaces(business *business.Layer, o graph.Options) (code int, confi
 	// update metrics
 	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes, 0)
 
-	return code, config
+	return code, config, nil
 }
 
 // graphNamespacesIstio provides a test hook that accepts mock clients

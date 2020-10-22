@@ -53,8 +53,11 @@ func TestGraphNode(t *testing.T) {
 		assert.Equal(t, nil, err)
 	}
 	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090")
-	graph.CheckError(err)
-	code, payload := api.GraphNamespaces(business, o)
+	if err != nil {
+		assert.Equal(t, nil, err)
+	}
+	code, payload, err := api.GraphNamespaces(business, o)
+	assert.Equal(t, nil, err)
 	fmt.Print(code)
 	b, _ := json.MarshalIndent(payload, "", "")
 	fmt.Println(string(b))
@@ -75,7 +78,7 @@ func TestGraphNode1(t *testing.T) {
 	o := graph.NewOptions(r)
 	business, err := GetBusinessNoAuth(nil, "")
 	graph.CheckError(err)
-	code, payload := api.GraphNamespaces(business, o)
+	code, payload, err := api.GraphNamespaces(business, o)
 	fmt.Print(code)
 	b, _ := json.MarshalIndent(payload, "", "")
 	fmt.Println(string(b))

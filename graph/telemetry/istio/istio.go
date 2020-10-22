@@ -52,6 +52,7 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 
 	setLabels()
 	appenders := appender.ParseAppenders(o)
+	// init TrafficMap
 	trafficMap := graph.NewTrafficMap()
 
 	for _, namespace := range o.Namespaces {

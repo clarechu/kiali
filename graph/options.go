@@ -210,9 +210,13 @@ func NewOptions(
 	for _, namespaceToken := range strings.Split(namespaces, ",") {
 		namespaceToken = strings.TrimSpace(namespaceToken)
 		if creationTime, found := accessibleNamespaces[namespaceToken]; found {
+			duration, err := getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime)
+			if err != nil {
+				BadRequest(fmt.Sprintf("At least one namespace must be specified via the namespaces query parameter."))
+			}
 			namespaceMap[namespaceToken] = NamespaceInfo{
 				Name:     namespaceToken,
-				Duration: getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime),
+				Duration: duration,
 				IsIstio:  config.IsIstioNamespace(namespaceToken),
 			}
 		} else {
@@ -391,36 +395,35 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 	if telemetryVendor == "" {
 		telemetryVendor = defaultTelemetryVendor
 	} else if telemetryVendor != VendorIstio {
-		BadRequest(fmt.Sprintf("Invalid telemetryVendor [%s]", telemetryVendor))
 		return Options{}, fmt.Errorf("invalid telemetryVendor [%s]", telemetryVendor)
 	}
 
 	// Process namespaces options:
 	namespaceMap := NewNamespaceInfoMap()
-
 	accessibleNamespaces := getAccessibleNamespacesNoToken(restConfig)
-
 	// If path variable is set then it is the only relevant namespace (it's a node graph)
 	// Else if namespaces query param is set it specifies the relevant namespaces
 	// Else error, at least one namespace is required.
 	if namespace != "" {
 		namespaces = namespace
-	}
-
-	if namespaces == "" {
-		BadRequest(fmt.Sprintf("At least one namespace must be specified via the namespaces query parameter."))
+	} else if namespaces == "" {
+		return Options{}, fmt.Errorf("at least one namespace must be specified via the namespaces query parameter")
 	}
 
 	for _, namespaceToken := range strings.Split(namespaces, ",") {
 		namespaceToken = strings.TrimSpace(namespaceToken)
 		if creationTime, found := accessibleNamespaces[namespaceToken]; found {
+			duration, err := getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime)
+			if err != nil {
+				return Options{}, err
+			}
 			namespaceMap[namespaceToken] = NamespaceInfo{
 				Name:     namespaceToken,
-				Duration: getSafeNamespaceDuration(namespaceToken, creationTime, time.Duration(duration), queryTime),
+				Duration: duration,
 				IsIstio:  config.IsIstioNamespace(namespaceToken),
 			}
 		} else {
-			Forbidden(fmt.Sprintf("Requested namespace [%s] is not accessible.", namespaceToken))
+			return Options{}, fmt.Errorf("requested namespace [%s] is not accessible", namespaceToken)
 		}
 	}
 
@@ -438,7 +441,6 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 			CommonOptions: CommonOptions{
 				Duration:  time.Duration(duration),
 				GraphType: graphType,
-				//Params:    params,
 				QueryTime: queryTime,
 			},
 		},
@@ -450,7 +452,6 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 			CommonOptions: CommonOptions{
 				Duration:  time.Duration(duration),
 				GraphType: graphType,
-				//Params:    params,
 				QueryTime: queryTime,
 			},
 			NodeOptions: NodeOptions{
@@ -499,7 +500,7 @@ const (
 // creation time just return the requestedDuration.  Otherwise reduce the duration as needed to ensure the
 // namespace existed for the entire time range.  An error is generated if no safe duration exists (i.e. the
 // queryTime precedes the namespace).
-func getSafeNamespaceDuration(ns string, nsCreationTime time.Time, requestedDuration time.Duration, queryTime int64) time.Duration {
+func getSafeNamespaceDuration(ns string, nsCreationTime time.Time, requestedDuration time.Duration, queryTime int64) (time.Duration, error) {
 	var endTime time.Time
 	safeDuration := requestedDuration
 
@@ -512,7 +513,7 @@ func getSafeNamespaceDuration(ns string, nsCreationTime time.Time, requestedDura
 
 		nsLifetime := endTime.Sub(nsCreationTime)
 		if nsLifetime <= 0 {
-			BadRequest(fmt.Sprintf("Namespace [%s] did not exist at requested queryTime [%v]", ns, endTime))
+			return 0, fmt.Errorf("namespace [%s] did not exist at requested queryTime [%v]", ns, endTime)
 		}
 
 		if nsLifetime < safeDuration {
@@ -521,5 +522,5 @@ func getSafeNamespaceDuration(ns string, nsCreationTime time.Time, requestedDura
 		}
 	}
 
-	return safeDuration
+	return safeDuration, nil
 }
