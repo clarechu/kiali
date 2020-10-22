@@ -46,7 +46,7 @@ func NewServer() error {
 	return http.ListenAndServe(":8000", nil)
 }
 
-func IndexHandler(w http.ResponseWriter, r *http.Request)  {
+func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "hello world")
 
 	w.Write([]byte("HELLO WORLD!"))
