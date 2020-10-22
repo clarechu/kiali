@@ -5,7 +5,6 @@ package graph
 import (
 	"fmt"
 	"github.com/kiali/kiali/kubernetes"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	net_http "net/http"
@@ -312,7 +311,7 @@ type Option struct {
 	Appenders          string `json:"appenders"`
 }
 
-func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Options {
+func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Options, error) {
 	// path variables (0 or more will be set)
 	app := o.App
 	namespace := o.Namespace
@@ -346,6 +345,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Option
 		configVendor = defaultConfigVendor
 	} else if configVendor != VendorCytoscape {
 		BadRequest(fmt.Sprintf("Invalid configVendor [%s]", configVendor))
+		return Options{}, fmt.Errorf("invalid configVendor [%s]", configVendor)
 	}
 	if durationString == "" {
 		duration, _ = model.ParseDuration(defaultDuration)
@@ -353,22 +353,22 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Option
 		var durationErr error
 		duration, durationErr = model.ParseDuration(durationString)
 		if durationErr != nil {
-			BadRequest(fmt.Sprintf("Invalid duration [%s]", durationString))
+			return Options{}, durationErr
 		}
 	}
 	if graphType == "" {
 		graphType = defaultGraphType
 	} else if graphType != GraphTypeApp && graphType != GraphTypeService && graphType != GraphTypeVersionedApp && graphType != GraphTypeWorkload {
-		BadRequest(fmt.Sprintf("Invalid graphType [%s]", graphType))
+		return Options{}, fmt.Errorf("invalid graphType [%s]", graphType)
 	}
 	// app node graphs require an app graph type
 	if app != "" && graphType != GraphTypeApp && graphType != GraphTypeVersionedApp {
-		BadRequest(fmt.Sprintf("Invalid graphType [%s]. This node detail graph supports only graphType app or versionedApp.", graphType))
+		return Options{}, fmt.Errorf("invalid graphType [%s]. This node detail graph supports only graphType app or versionedApp", graphType)
 	}
 	if groupBy == "" {
 		groupBy = defaultGroupBy
 	} else if groupBy != GroupByApp && groupBy != GroupByNone && groupBy != GroupByVersion {
-		BadRequest(fmt.Sprintf("Invalid groupBy [%s]", groupBy))
+		return Options{}, fmt.Errorf("invalid groupBy [%s]", groupBy)
 	}
 	if injectServiceNodesString == "" {
 		injectServiceNodes = defaultInjectServiceNodes
@@ -376,7 +376,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Option
 		var injectServiceNodesErr error
 		injectServiceNodes, injectServiceNodesErr = strconv.ParseBool(injectServiceNodesString)
 		if injectServiceNodesErr != nil {
-			BadRequest(fmt.Sprintf("Invalid injectServiceNodes [%s]", injectServiceNodesString))
+			return Options{}, fmt.Errorf("invalid injectServiceNodes [%s]", injectServiceNodesString)
 		}
 	}
 	if queryTimeString == "" {
@@ -385,29 +385,18 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Option
 		var queryTimeErr error
 		queryTime, queryTimeErr = strconv.ParseInt(queryTimeString, 10, 64)
 		if queryTimeErr != nil {
-			BadRequest(fmt.Sprintf("Invalid queryTime [%s]", queryTimeString))
+			return Options{}, fmt.Errorf("invalid queryTime [%s]", queryTimeString)
 		}
 	}
 	if telemetryVendor == "" {
 		telemetryVendor = defaultTelemetryVendor
 	} else if telemetryVendor != VendorIstio {
 		BadRequest(fmt.Sprintf("Invalid telemetryVendor [%s]", telemetryVendor))
+		return Options{}, fmt.Errorf("invalid telemetryVendor [%s]", telemetryVendor)
 	}
 
 	// Process namespaces options:
 	namespaceMap := NewNamespaceInfoMap()
-
-	/*	tokenContext := r.Context().Value("token")
-		var token string
-		if tokenContext != nil {
-			if tokenString, ok := tokenContext.(string); !ok {
-				Error("token is not of type string")
-			} else {
-				token = tokenString
-			}
-		} else {
-			Error("token missing in request context")
-		}*/
 
 	accessibleNamespaces := getAccessibleNamespacesNoToken(restConfig)
 
@@ -474,7 +463,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) Option
 		},
 	}
 
-	return options
+	return options, nil
 }
 
 // getAccessibleNamespaces returns a Set of all namespaces accessible to the user.
@@ -505,15 +494,6 @@ const (
 	App              = "app"
 	Mesher           = "mesher"
 )
-
-func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
-	ops := metav1.GetOptions{}
-	clientSet, err := kubernetes.GetDefaultK8sClientSet()
-	if err != nil {
-		return nil, err
-	}
-	return clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
-}
 
 // getSafeNamespaceDuration returns a safe duration for the query. If queryTime-requestedDuration > namespace
 // creation time just return the requestedDuration.  Otherwise reduce the duration as needed to ensure the

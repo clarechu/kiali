@@ -189,9 +189,6 @@ func (cf *clientFactory) getClientEntryNoAuth() (*clientEntry, error) {
 		client:  client,
 		created: time.Now(),
 	}
-
-	mutex.Lock()
-	mutex.Unlock()
 	internalmetrics.SetKubernetesClients(len(cf.clientEntries))
 	return &cEntry, nil
 }

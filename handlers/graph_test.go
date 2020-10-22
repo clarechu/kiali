@@ -7,6 +7,7 @@ import (
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/graph/api"
 	"github.com/kiali/kiali/kubernetes"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"k8s.io/client-go/rest"
 	"net/http"
@@ -47,7 +48,10 @@ func TestGraphNode(t *testing.T) {
 		Context:            "cluster02",
 	}
 
-	o := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:9090")
+	o, err := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:9090")
+	if err != nil {
+		assert.Equal(t, nil, err)
+	}
 	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090")
 	graph.CheckError(err)
 	code, payload := api.GraphNamespaces(business, o)
