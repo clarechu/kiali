@@ -89,6 +89,7 @@ type Options struct {
 	PromAddress     string
 	ConfigVendor    string
 	TelemetryVendor string
+	Context         string
 	ConfigOptions
 	TelemetryOptions
 }
@@ -322,7 +323,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 	service := o.Service
 	version := o.Version
 	workload := o.Workload
-
+	context := o.Context
 	// query params
 	var duration model.Duration
 	var injectServiceNodes bool
@@ -435,6 +436,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 
 	options := Options{
 		PromAddress:     address,
+		Context:         context,
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{

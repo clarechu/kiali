@@ -17,6 +17,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"strings"
 	"time"
 
@@ -47,29 +48,40 @@ func setLabels() {
 }
 
 // BuildNamespacesTrafficMap is required by the graph/TelemtryVendor interface
-func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo) graph.TrafficMap {
+func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo, span opentracing.Span) graph.TrafficMap {
 	log.Tracef("Build [%s] graph for [%v] namespaces [%s]", o.GraphType, len(o.Namespaces), o.Namespaces)
 
 	setLabels()
 	appenders := appender.ParseAppenders(o)
+	span.LogKV("parse appenders")
 	// init TrafficMap
 	trafficMap := graph.NewTrafficMap()
 
 	for _, namespace := range o.Namespaces {
 		log.Tracef("Build traffic map for namespace [%s]", namespace)
 		//生成一个 namespaceTrafficMap
+		span.LogKV("buildNamespaceTrafficMap start", "")
 		namespaceTrafficMap := buildNamespaceTrafficMap(namespace.Name, o, client)
+		span.LogKV("buildNamespaceTrafficMap end", "")
 		namespaceInfo := graph.NewAppenderNamespaceInfo(namespace.Name)
+		span.LogKV("NewAppenderNamespaceInfo end", "")
+
 		for _, a := range appenders {
+			appendersSpan := opentracing.StartSpan(a.Name(), opentracing.ChildOf(span.Context()))
 			appenderTimer := internalmetrics.GetGraphAppenderTimePrometheusTimer(a.Name())
+			appendersSpan.LogKV("appenders start", a.Name())
 			err := a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
+			appendersSpan.LogKV("appenders end", a.Name())
 			if err != nil {
 				break
 			}
+			appendersSpan.Finish()
 			appenderTimer.ObserveDuration()
 		}
+		span.LogKV("appenders end ...")
 		// 将 namespaceTrafficMap merge ---->  trafficMap 中
 		telemetry.MergeTrafficMaps(trafficMap, namespace.Name, namespaceTrafficMap)
+		span.LogKV("MergeTrafficMaps...")
 	}
 
 	// The appenders can add/remove/alter nodes. After the manipulations are complete

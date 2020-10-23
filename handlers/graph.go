@@ -49,7 +49,7 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 	business, err := getBusiness(r)
 	graph.CheckError(err)
 
-	code, payload, err := api.GraphNamespaces(business, o)
+	code, payload, err := api.GraphNamespaces(business, o, nil)
 	respond(w, code, payload)
 }
 

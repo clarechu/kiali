@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"github.com/opentracing/opentracing-go"
 	"k8s.io/client-go/rest"
 	"net/http"
 	"net/url"
@@ -40,7 +41,7 @@ func checkNamespaceAccess(w http.ResponseWriter, r *http.Request, prom prometheu
 }
 
 func CheckNamespaceAccess(config *rest.Config, promAddress string, namespace string) *models.Namespace {
-	layer, err := GetBusinessNoAuth(config, promAddress)
+	layer, err := GetBusinessNoAuth(config, promAddress, nil)
 	if err != nil {
 		return nil
 	}
@@ -118,6 +119,7 @@ func getBusiness(r *http.Request) (*business.Layer, error) {
 }
 
 // getBusiness noauth returns the business layer specific to the users's request
-func GetBusinessNoAuth(config *rest.Config, promAddress string) (*business.Layer, error) {
-	return business.GetNoAuth(config, promAddress)
+func GetBusinessNoAuth(config *rest.Config, promAddress string, ctx opentracing.SpanContext) (*business.Layer, error) {
+	span := opentracing.StartSpan("get auth", opentracing.ChildOf(ctx))
+	return business.GetNoAuth(config, promAddress, span)
 }

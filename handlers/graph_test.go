@@ -37,7 +37,7 @@ func GetRestConfig() (restConfig *rest.Config) {
 	return restConfig
 }
 
-func TestGraphNode(t *testing.T) {
+func TestGraphNamespace(t *testing.T) {
 	config.Set(config.NewConfig())
 	option := graph.Option{
 		Duration:           "60s",
@@ -53,11 +53,11 @@ func TestGraphNode(t *testing.T) {
 	if err != nil {
 		assert.Equal(t, nil, err)
 	}
-	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090")
+	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090", nil)
 	if err != nil {
 		assert.Equal(t, nil, err)
 	}
-	code, payload, err := api.GraphNamespaces(business, o)
+	code, payload, err := api.GraphNamespaces(business, o, nil)
 	assert.Equal(t, nil, err)
 	fmt.Print(code)
 	b, _ := json.MarshalIndent(payload, "", "")
@@ -77,9 +77,9 @@ func TestGraphNode1(t *testing.T) {
 	}
 
 	o := graph.NewOptions(r)
-	business, err := GetBusinessNoAuth(nil, "")
+	business, err := GetBusinessNoAuth(nil, "", nil)
 	graph.CheckError(err)
-	code, payload, err := api.GraphNamespaces(business, o)
+	code, payload, err := api.GraphNamespaces(business, o, nil)
 	fmt.Print(code)
 	b, _ := json.MarshalIndent(payload, "", "")
 	fmt.Println(string(b))

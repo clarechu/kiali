@@ -43,16 +43,6 @@ var (
 	commitHash = "unknown"
 )
 
-// Command line arguments
-var (
-	argConfigFile = flag.String("config", "", "Path to the YAML configuration file. If not specified, environment variables will be used for configuration.")
-)
-
-func init() {
-	// log everything to stderr so that it can be easily gathered by logs, separate log files are problematic with containers
-	_ = flag.Set("logtostderr", "true")
-
-}
 
 //main 入口 找到你了 。。。。
 func main1() {

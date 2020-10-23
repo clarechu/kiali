@@ -1,12 +1,14 @@
 package business
 
 import (
+	"fmt"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/jaeger"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/kubernetes/cache"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/prometheus"
+	"github.com/opentracing/opentracing-go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -139,8 +141,9 @@ func GetKialiCache(context string) *cache.KialiCache {
 }
 
 // Get the business.Layer
-func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
+func GetNoAuth(config *rest.Config, promAddress string, span opentracing.Span) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
+	span.LogKV("init kiali caches", fmt.Sprintf("host :%s", config.Host))
 	initKialiCaches(config)
 	userClient, err := kubernetes.GetClientFileFactory(config)
 	if err != nil {
@@ -148,6 +151,7 @@ func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 	}
 	clientFactory = userClient
 	// Creates a new k8s client based on the current users token
+	span.LogKV("get k8s client")
 	k8s, err := clientFactory.GetClientNoAuth()
 	if err != nil {
 		return nil, err
@@ -155,6 +159,7 @@ func GetNoAuth(config *rest.Config, promAddress string) (*Layer, error) {
 
 	// Use an existing Prometheus client if it exists, otherwise create and use in the future
 	if prometheusClient == nil {
+		span.LogKV("get prometheus client")
 		prom, err := prometheus.NewClientNoAuth(promAddress)
 		if err != nil {
 			return nil, err

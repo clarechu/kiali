@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"github.com/opentracing/opentracing-go"
 	"net/http"
 
 	"github.com/kiali/kiali/business"
@@ -14,19 +15,21 @@ import (
 )
 
 // GraphNamespaces generates a namespaces graph using the provided options
-func GraphNamespaces(business *business.Layer, o graph.Options) (code int, config interface{}, err error) {
+func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing.Span) (code int, config interface{}, err error) {
 	// time how long it takes to generate this graph
 	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
 	defer promtimer.ObserveDuration()
 
 	switch o.TelemetryVendor {
 	case graph.VendorIstio:
+		span.LogKV("TelemetryVendor", graph.VendorIstio)
 		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
 		if err != nil {
 			return 0, nil, err
 		}
-		code, config = graphNamespacesIstio(business, prom, o)
+		code, config = graphNamespacesIstio(business, prom, o, span)
 	default:
+		span.LogKV("TelemetryVendor", graph.VendorIstio)
 		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
 	}
 
@@ -37,15 +40,17 @@ func GraphNamespaces(business *business.Layer, o graph.Options) (code int, confi
 }
 
 // graphNamespacesIstio provides a test hook that accepts mock clients
-func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options) (code int, config interface{}) {
+func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options, span opentracing.Span) (code int, config interface{}) {
 
 	// Create a 'global' object to store the business. Global only to the request.
 	globalInfo := graph.NewAppenderGlobalInfo()
+	globalInfo.Context = o.Context
 	globalInfo.Business = business
 	globalInfo.PromClient = prom
-	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo)
+	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo, span)
+	genSpan := opentracing.StartSpan("generate", opentracing.FollowsFrom(span.Context()))
 	code, config = generateGraph(trafficMap, o)
-
+	genSpan.Finish()
 	return code, config
 }
 

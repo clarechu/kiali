@@ -12,6 +12,7 @@ type AppenderVendorInfo map[string]interface{}
 // can re-use the information.  A new instance is generated for graph and
 // is initially empty.
 type AppenderGlobalInfo struct {
+	Context    string
 	Business   *business.Layer
 	PromClient *prometheus.Client
 	Vendor     AppenderVendorInfo // telemetry vendor's global info
