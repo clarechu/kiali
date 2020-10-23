@@ -30,12 +30,12 @@ external_services:
   # If unset, the Grafana service URL will be looked up from Kubernetes Grafana service. It may not always be available.
   # grafana_service_url: http://grafana-istio-system.127.0.0.1.nip.io
 
-# Uncomment in_cluster to set a different value.
-# Default is true (which matches Kiali default configuration to run inside a pod running on kubernetes)
-# in_cluster: true
+  # Uncomment in_cluster to set a different value.
+  # Default is true (which matches Kiali default configuration to run inside a pod running on kubernetes)
+  # in_cluster: true
 
-# Uncomment to use another istio labels
-#istio_labels:
+  # Uncomment to use another istio labels
+  #istio_labels:
   # Uncomment app_label_name to set up a different label name for grouping all resources of an app.
   # Default is "app"
   # app_label_name: app

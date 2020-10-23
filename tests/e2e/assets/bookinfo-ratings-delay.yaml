@@ -5,20 +5,20 @@ metadata:
   name: ratings-delay-abort-vs
 spec:
   hosts:
-  - ratings
+    - ratings
   http:
-  - fault:
-      delay:
-        fixedDelay: 7s
-        percent: 100
-    route:
-    - destination:
-        host: ratings
-        subset: ratings-delay-abort-dr-subset-v1
-  - route:
-    - destination:
-        host: ratings
-        subset: ratings-delay-abort-dr-subset-v1
+    - fault:
+        delay:
+          fixedDelay: 7s
+          percent: 100
+      route:
+        - destination:
+            host: ratings
+            subset: ratings-delay-abort-dr-subset-v1
+    - route:
+        - destination:
+            host: ratings
+            subset: ratings-delay-abort-dr-subset-v1
 ---
 apiVersion: networking.istio.io/v1alpha3
 kind: DestinationRule
@@ -27,6 +27,6 @@ metadata:
 spec:
   host: ratings
   subsets:
-  - name: ratings-delay-abort-dr-subset-v1
-    labels:
-      version: v1
+    - name: ratings-delay-abort-dr-subset-v1
+      labels:
+        version: v1

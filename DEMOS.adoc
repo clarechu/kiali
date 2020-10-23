@@ -1,6 +1,7 @@
 = Some Service Meshes Demos
 
-The following list gathers some service meshes examples that are used or have been used to test or demo Kiali. There is no guarantee that all of them are still working at any time, they may (or may not) be supported by their respective owners.
+The following list gathers some service meshes examples that are used or have been used to test or demo Kiali.
+There is no guarantee that all of them are still working at any time, they may (or may not) be supported by their respective owners.
 
 == Bookinfo
 
@@ -14,7 +15,7 @@ link:https://github.com/redhat-developer-demos/istio-tutorial[Full tutorial inst
 
 == Kiali Test Meshes
 
-These ones are used for Kiali testing: 
+These ones are used for Kiali testing:
 link:https://github.com/kiali/kiali-test-mesh[kiali-test-mesh].
 
 == Petsiogram

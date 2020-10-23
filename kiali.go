@@ -43,7 +43,6 @@ var (
 	commitHash = "unknown"
 )
 
-
 //main 入口 找到你了 。。。。
 func main1() {
 	defer glog.Flush()

@@ -30,6 +30,7 @@ func init() {
 	flag.Set("v", "5")
 
 }
+
 // Command line arguments
 var (
 	argConfigFile = flag.String("config", "", "Path to the YAML configuration file. If not specified, environment variables will be used for configuration.")

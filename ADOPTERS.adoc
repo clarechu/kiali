@@ -1,7 +1,7 @@
 = Adopters
 
-This file is meant to list adopters and users of Kiali. Please feel free to add yourself
-to the respective section by sending a pull-request on this file.
+This file is meant to list adopters and users of Kiali.
+Please feel free to add yourself to the respective section by sending a pull-request on this file.
 
 Also feel free to add a testimonial or success story to your entry if you want to.
 
