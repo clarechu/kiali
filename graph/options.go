@@ -65,6 +65,7 @@ type CommonOptions struct {
 // ConfigOptions are those supplied to Config Vendors
 type ConfigOptions struct {
 	GroupBy string
+	Context string
 	CommonOptions
 }
 
@@ -441,6 +442,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{
 			GroupBy: groupBy,
+			Context: context,
 			CommonOptions: CommonOptions{
 				Duration:  time.Duration(duration),
 				GraphType: graphType,
