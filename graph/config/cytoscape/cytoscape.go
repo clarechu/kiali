@@ -110,6 +110,7 @@ type Config struct {
 	Timestamp int64    `json:"timestamp"`
 	Duration  int64    `json:"duration"`
 	GraphType string   `json:"graphType"`
+	Context   string   `json:"context"`
 	Elements  Elements `json:"elements"`
 }
 
@@ -178,6 +179,7 @@ func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Confi
 		Timestamp: o.QueryTime,
 		GraphType: o.GraphType,
 		Elements:  elements,
+		Context:   o.Context,
 	}
 	return result
 }
