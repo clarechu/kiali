@@ -194,6 +194,7 @@ func (a ServiceEntryAppender) getServiceEntry(serviceName string, globalInfo *gr
 					}
 					se := serviceEntry{
 						location: location,
+						address:  entry.Spec.Endpoints,
 						name:     entry.Metadata.Name,
 					}
 					for _, host := range entry.Spec.Hosts.([]interface{}) {

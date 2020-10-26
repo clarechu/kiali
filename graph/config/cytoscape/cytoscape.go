@@ -17,6 +17,7 @@ package cytoscape
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/kiali/kiali/models"
 	"sort"
 
 	"github.com/kiali/kiali/graph"
@@ -118,9 +119,41 @@ type Config struct {
 func nodeHash(id, context string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%s", id, context))))
 }
+/*
+func nodeHash(id, context string) string {
+	return fmt.Sprintf("%s", fmt.Sprintf("%s_%s", id, context))
+}*/
 
 func edgeHash(from, to, protocol, context string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s.%s.%s.%s", from, to, protocol, context))))
+}
+
+//id 经过md5 hash过了
+func multiNodeHash(id string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(id)))
+}
+
+func NewMultiClusterEdge(multi []models.MultiClusterEdge) (result []*EdgeWrapper) {
+	edges := []*EdgeWrapper{}
+	for _, e := range multi {
+		sourceIdHash := nodeHash(e.SourceId, e.SourceContext)
+		destIdHash := nodeHash(e.DestinationId, e.DestinationContext)
+		edgeId := edgeHash(sourceIdHash, destIdHash, e.Protocol, e.SourceContext)
+		ed := EdgeData{
+			Id:     edgeId,
+			Source: sourceIdHash,
+			Target: destIdHash,
+			Traffic: ProtocolTraffic{
+				Protocol: e.Protocol,
+			},
+		}
+
+		ew := EdgeWrapper{
+			Data: &ed,
+		}
+		edges = append(edges, &ew)
+	}
+	return edges
 }
 
 // NewConfig is required by the graph/ConfigVendor interface
@@ -186,8 +219,8 @@ func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Confi
 
 func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*EdgeWrapper, o graph.ConfigOptions) {
 	for id, n := range trafficMap {
-		nodeId := nodeHash(id, o.Context)
 
+		nodeId := nodeHash(id, o.Context)
 		nd := &NodeData{
 			Id:        nodeId,
 			NodeType:  n.NodeType,

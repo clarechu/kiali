@@ -141,6 +141,7 @@ const (
 
 type serviceEntry struct {
 	location string
+	address  []models.ServiceEntriesEndpoints
 	name     string // serviceEntry name
 }
 

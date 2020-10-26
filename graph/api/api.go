@@ -40,7 +40,7 @@ func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing
 }
 
 // graphNamespacesIstio provides a test hook that accepts mock clients
-func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options, span opentracing.Span) (code int, config interface{}) {
+func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options, span opentracing.Span) (code int, config cytoscape.Config) {
 
 	// Create a 'global' object to store the business. Global only to the request.
 	globalInfo := graph.NewAppenderGlobalInfo()
@@ -49,7 +49,15 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	globalInfo.PromClient = prom
 	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo, span)
 	genSpan := opentracing.StartSpan("generate", opentracing.FollowsFrom(span.Context()))
+	edgs, err  := istio.AddMultiClusterEdge(o.TelemetryOptions, globalInfo, []string{"cluster01", "cluster02"}, o.Context, prom)
+	if err != nil {
+		log.Debugf("%v", edgs)
+		return
+	}
+	res := cytoscape.NewMultiClusterEdge(edgs)
+
 	code, config = generateGraph(trafficMap, o)
+	config.Elements.Edges = append(config.Elements.Edges, res...)
 	genSpan.Finish()
 	return code, config
 }
@@ -91,13 +99,13 @@ func graphNodeIstio(business *business.Layer, client *prometheus.Client, o graph
 	return code, config
 }
 
-func generateGraph(trafficMap graph.TrafficMap, o graph.Options) (int, interface{}) {
+func generateGraph(trafficMap graph.TrafficMap, o graph.Options) (int, cytoscape.Config) {
 	log.Tracef("Generating config for [%s] graph...", o.ConfigVendor)
 
 	promtimer := internalmetrics.GetGraphMarshalTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
 	defer promtimer.ObserveDuration()
 
-	var vendorConfig interface{}
+	var vendorConfig cytoscape.Config
 	switch o.ConfigVendor {
 	case graph.VendorCytoscape:
 		vendorConfig = cytoscape.NewConfig(trafficMap, o.ConfigOptions)

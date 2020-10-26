@@ -97,7 +97,12 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 		GraphType:          "versionedApp",
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
-		Appenders:          "deadNode,sidecarsCheck,serviceEntry,istio,unusedNode,securityPolicy",
+		Appenders:          "deadNode," +
+			"sidecarsCheck," +
+			//"serviceEntry," +
+			"istio," +
+			"unusedNode," +
+			"securityPolicy",
 		Namespaces:         "poc,poc-demo",
 		Context:            "cluster02",
 	}
@@ -119,11 +124,13 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, payload, err := api.GraphNamespaces(business, o, graphNamespacesSpan)
+	p := make(map[string]interface{}, 0)
+	p["cluster02"] = payload
 	graphNamespacesSpan.Finish()
 	if err != nil {
 		return
 	}
-	b, _ := json.MarshalIndent(payload, "", "")
+	b, _ := json.MarshalIndent(p, "", "")
 	w.Write(b)
 }
 
