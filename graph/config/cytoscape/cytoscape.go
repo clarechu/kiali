@@ -108,17 +108,19 @@ type Elements struct {
 }
 
 type Config struct {
-	Timestamp int64    `json:"timestamp"`
-	Duration  int64    `json:"duration"`
-	GraphType string   `json:"graphType"`
-	Context   string   `json:"context"`
-	Elements  Elements `json:"elements"`
+	Timestamp   int64                     `json:"timestamp"`
+	Duration    int64                     `json:"duration"`
+	GraphType   string                    `json:"graphType"`
+	Context     string                    `json:"context"`
+	Elements    Elements                  `json:"elements"`
+	PassThrough []models.MultiClusterEdge `json:"passThrough"`
 }
 
 //id 经过md5 hash过了
 func nodeHash(id, context string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%s", id, context))))
 }
+
 /*
 func nodeHash(id, context string) string {
 	return fmt.Sprintf("%s", fmt.Sprintf("%s_%s", id, context))

@@ -15,7 +15,7 @@ import (
 )
 
 // GraphNamespaces generates a namespaces graph using the provided options
-func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing.Span) (code int, config interface{}, err error) {
+func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing.Span) (code int, config interface{}, edge []*cytoscape.EdgeWrapper, err error) {
 	// time how long it takes to generate this graph
 	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
 	defer promtimer.ObserveDuration()
@@ -25,9 +25,9 @@ func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing
 		span.LogKV("TelemetryVendor", graph.VendorIstio)
 		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
 		if err != nil {
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
-		code, config = graphNamespacesIstio(business, prom, o, span)
+		code, config, edge = graphNamespacesIstio(business, prom, o, span)
 	default:
 		span.LogKV("TelemetryVendor", graph.VendorIstio)
 		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
@@ -36,11 +36,11 @@ func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing
 	// update metrics
 	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes, 0)
 
-	return code, config, nil
+	return code, config, edge, nil
 }
 
 // graphNamespacesIstio provides a test hook that accepts mock clients
-func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options, span opentracing.Span) (code int, config cytoscape.Config) {
+func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o graph.Options, span opentracing.Span) (code int, config cytoscape.Config, edge []*cytoscape.EdgeWrapper) {
 
 	// Create a 'global' object to store the business. Global only to the request.
 	globalInfo := graph.NewAppenderGlobalInfo()
@@ -49,17 +49,17 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	globalInfo.PromClient = prom
 	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo, span)
 	genSpan := opentracing.StartSpan("generate", opentracing.FollowsFrom(span.Context()))
-	edgs, err  := istio.AddMultiClusterEdge(o.TelemetryOptions, globalInfo, []string{"cluster01", "cluster02"}, o.Context, prom)
+	// Get cross-cluster traffic lines
+	edgs, err := istio.AddMultiClusterEdge(o.TelemetryOptions, globalInfo, o.Clusters, o.Context, prom)
 	if err != nil {
 		log.Debugf("%v", edgs)
 		return
 	}
 	res := cytoscape.NewMultiClusterEdge(edgs)
-
 	code, config = generateGraph(trafficMap, o)
-	config.Elements.Edges = append(config.Elements.Edges, res...)
+	//config.Elements.Edges = append(config.Elements.Edges, res...)
 	genSpan.Finish()
-	return code, config
+	return code, config, res
 }
 
 // GraphNode generates a node graph using the provided options

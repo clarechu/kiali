@@ -72,7 +72,6 @@ The Pipeline performs the following actions to do the release:
 ==
 
 [[run-locally]]
-
 Running the release process locally
 
 If you don't have access to the Jenkins instance or the release process through Jenkins doesn't suit your needs, you may want to run the release process _locally_.

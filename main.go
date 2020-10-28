@@ -9,6 +9,7 @@ import (
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/graph/api"
+	"github.com/kiali/kiali/graph/config/cytoscape"
 	"github.com/kiali/kiali/handlers"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
@@ -22,6 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	"net/http"
 	"os"
+	"sync"
 )
 
 func init() {
@@ -91,47 +93,98 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 	graphSpan, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("HTTP GET /graph/context/{context}/namespaces/{namespace}"))
 	defer graphSpan.Finish()
 	optionSpan := opentracing.StartSpan("options", opentracing.ChildOf(graphSpan.Context()))
-	optionSpan.SetTag("namespaces", "poc-demo,poc")
-	option := graph.Option{
-		Duration:           "60s",
-		GraphType:          "versionedApp",
-		InjectServiceNodes: "true",
-		GroupBy:            "app",
-		Appenders:          "deadNode," +
-			"sidecarsCheck," +
-			//"serviceEntry," +
-			"istio," +
-			"unusedNode," +
-			"securityPolicy",
-		Namespaces:         "poc,poc-demo",
-		Context:            "cluster02",
+	clusters := map[string]string{
+		"cluster01": "10.10.13.34",
+		"cluster02": "10.10.13.30",
+		"cluster03": "10.10.13.59",
 	}
+	options := []graph.Option{
+		graph.NewSimpleOption("60s", "versionedApp", "app", "poc,poc-demo", "cluster01", "http://10.10.13.30:9090", clusters),
+		graph.NewSimpleOption("60s", "versionedApp", "app", "poc,poc-demo", "cluster02", "http://10.10.13.34:9090", clusters),
+		graph.NewSimpleOption("60s", "versionedApp", "app", "poc,poc-demo", "cluster03", "http://10.10.13.59:9090", clusters),
+	}
+	wg := sync.WaitGroup{}
+	wg.Add(len(options))
+	clusterCha := make(chan map[string]*PlayLoad, 10)
+	for _, option := range options {
+		go func(option graph.Option) {
+			log.Infof("cluster start ")
+			GraphNodeCluster(optionSpan, option, clusterCha)
+			log.Infof("cluster :%v done ... ", option)
+			wg.Done()
+		}(option)
+	}
+	wg.Wait()
+	p := make(map[string]interface{}, 0)
+	for {
+		select {
+		case ss := <-clusterCha:
+			for k, v := range ss {
+				p[k] = v.Load
+				_, ok := p["passthrough"]
+				if !ok {
+					p["passthrough"] = v.Edges
+				} else {
+					edges := p["passthrough"].([]*cytoscape.EdgeWrapper)
+					edges = append(edges, v.Edges...)
+					p["passthrough"] = edges
+				}
+			}
+
+			if len(p) == len(options)+1 {
+				b, _ := json.MarshalIndent(p, "", "")
+				w.Write(b)
+				return
+			}
+		}
+	}
+}
+
+type PlayLoad struct {
+	Load  interface{}              `json:"load"`
+	Edges []*cytoscape.EdgeWrapper `json:"edges"`
+}
+
+//GraphNodeCluster 单个集群的流量视图
+func GraphNodeCluster(optionSpan opentracing.Span, option graph.Option, cha chan map[string]*PlayLoad) {
+	optionSpan.SetTag("namespaces", "poc-demo,poc")
 	optionSpan.LogKV("new graph options", fmt.Sprintf("prometheus address:%s", "http://10.10.13.30:9090"))
-	o, err := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:9090")
+
+	payload, edges, err := GetGraph(optionSpan, option)
+	p := make(map[string]*PlayLoad, 0)
+	if err != nil {
+		p[option.Context] = nil
+		cha <- p
+		return
+	}
+	p[option.Context] = &PlayLoad{
+		Load:  payload,
+		Edges: edges,
+	}
+	cha <- p
+}
+
+//GetGraph 调用GraphNamespaces 的接口
+func GetGraph(optionSpan opentracing.Span, option graph.Option) (result interface{}, edges []*cytoscape.EdgeWrapper, err error) {
+	optionSpan.LogKV("new graph options", fmt.Sprintf("prometheus address:%s", option.Prometheus))
+	o, err := option.NewGraphOptions(GetRestConfig(), option.Prometheus)
 	optionSpan.LogKV("new graph options", fmt.Sprintf("end error:%v", err))
 	optionSpan.Finish()
 
 	businessSpan := opentracing.StartSpan("business", opentracing.FollowsFrom(optionSpan.Context()))
 	if err != nil {
-		w.Write([]byte(err.Error()))
-		return
+		return nil, nil, err
 	}
-	business, err := handlers.GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090", optionSpan.Context())
+	business, err := handlers.GetBusinessNoAuth(GetRestConfig(), option.Prometheus, optionSpan.Context())
 	businessSpan.Finish()
 	graphNamespacesSpan := opentracing.StartSpan("get graph", opentracing.FollowsFrom(businessSpan.Context()))
 	graphNamespacesSpan.LogKV("func GraphNamespaces start", "")
 	if err != nil {
 		return
 	}
-	_, payload, err := api.GraphNamespaces(business, o, graphNamespacesSpan)
-	p := make(map[string]interface{}, 0)
-	p["cluster02"] = payload
+	_, payload, edges, err := api.GraphNamespaces(business, o, graphNamespacesSpan)
 	graphNamespacesSpan.Finish()
-	if err != nil {
-		return
-	}
-	b, _ := json.MarshalIndent(p, "", "")
-	w.Write(b)
+	return payload, edges, err
 }
 
 func GetRestConfig() (restConfig *rest.Config) {

@@ -91,6 +91,7 @@ type Options struct {
 	ConfigVendor    string
 	TelemetryVendor string
 	Context         string
+	Clusters        map[string]string
 	ConfigOptions
 	TelemetryOptions
 }
@@ -300,21 +301,42 @@ func getAccessibleNamespaces(token string) map[string]time.Time {
 }
 
 type Option struct {
-	App                string `json:"app"`
-	Namespace          string `json:"namespace"`
-	Service            string `json:"service"`
-	Version            string `json:"version"`
-	Workload           string `json:"workload"`
-	ConfigVendor       string `json:"configVendor"`
-	Duration           string `json:"duration"`
-	GraphType          string `json:"graphType"`
-	GroupBy            string `json:"groupBy"`
-	InjectServiceNodes string `json:"injectServiceNodes"`
-	Namespaces         string `json:"namespaces"`
-	QueryTime          string `json:"queryTime"`
-	Context            string `json:"context"`
-	TelemetryVendor    string `json:"telemetryVendor"`
-	Appenders          string `json:"appenders"`
+	App                string            `json:"app"`
+	Namespace          string            `json:"namespace"`
+	Service            string            `json:"service"`
+	Version            string            `json:"version"`
+	Workload           string            `json:"workload"`
+	ConfigVendor       string            `json:"configVendor"`
+	Duration           string            `json:"duration"`
+	GraphType          string            `json:"graphType"`
+	GroupBy            string            `json:"groupBy"`
+	InjectServiceNodes string            `json:"injectServiceNodes"`
+	Namespaces         string            `json:"namespaces"`
+	QueryTime          string            `json:"queryTime"`
+	Context            string            `json:"context"`
+	TelemetryVendor    string            `json:"telemetryVendor"`
+	Appenders          string            `json:"appenders"`
+	Prometheus         string            `json:"prometheus"`
+	Clusters           map[string]string `json:"clusters"`
+}
+
+func NewSimpleOption(duration, graphType, groupBy, namespaces, context, prometheusUrl string, clusters map[string]string) Option {
+	return Option{
+		Duration:           duration,
+		GraphType:          graphType,
+		InjectServiceNodes: "true",
+		GroupBy:            groupBy,
+		Appenders: "deadNode," +
+			"sidecarsCheck," +
+			//"serviceEntry," +
+			"istio," +
+			"unusedNode," +
+			"securityPolicy",
+		Namespaces: namespaces,
+		Context:    context,
+		Prometheus: prometheusUrl,
+		Clusters:   clusters,
+	}
 }
 
 func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Options, error) {
@@ -325,6 +347,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 	version := o.Version
 	workload := o.Workload
 	context := o.Context
+	clusters := o.Clusters
 	// query params
 	var duration model.Duration
 	var injectServiceNodes bool
@@ -438,6 +461,7 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 	options := Options{
 		PromAddress:     address,
 		Context:         context,
+		Clusters:        clusters,
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{

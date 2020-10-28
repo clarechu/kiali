@@ -101,7 +101,8 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 }
 
 // 添加多集群的线
-func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlobalInfo, clusters []string, context string, client *prometheus.Client) ([]models.MultiClusterEdge, error) {
+//todo 这个地方还需要搞一下 查询所有的集群的数据 在来聚合
+func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlobalInfo, clusters map[string]string, context string, client *prometheus.Client) ([]models.MultiClusterEdge, error) {
 	edges := make([]models.MultiClusterEdge, 0)
 	for namespace := range o.Namespaces {
 		istioCfg, err := globalInfo.Business.IstioConfig.GetIstioConfigList(business.IstioConfigCriteria{
@@ -151,7 +152,8 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 							destinationId, _ := graph.Id(string(lDestinationWlNs), hostSplitted[0], "",
 								"", hostSplitted[1], "", graph.GraphTypeService)
 							log.Debugf("sourceId :%v, destinationId :%v lDestinationWl: %v lProtocol:%v", sourceId, destinationId, lDestinationWl, lProtocol)
-							for _, desContext := range clusters {
+							ips := ss(se.Spec.Endpoints, clusters)
+							for _, desContext := range ips {
 								if desContext == context {
 									continue
 								}
@@ -161,6 +163,11 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 									Protocol:           string(lProtocol),
 									SourceContext:      context,
 									DestinationContext: desContext,
+									Rate: models.Rate{
+										Http:           s.Value.String(),
+										HttpPercentReq: fmt.Sprintf("%v", 100/len(se.Spec.Endpoints)),
+									},
+									Host: string(lDestinationSvc),
 								}
 								edges = append(edges, edge)
 							}
@@ -171,6 +178,19 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 		}
 	}
 	return edges, nil
+}
+
+//需要展示的线的集群
+func ss(ips []models.ServiceEntriesEndpoints, clusters map[string]string) []string {
+	cs := make([]string, 0)
+	for k, v := range clusters {
+		for _, ip := range ips {
+			if v == ip.Address {
+				cs = append(cs, k)
+			}
+		}
+	}
+	return cs
 }
 
 // buildNamespaceTrafficMap returns a map of all namespace nodes (key=id).  All
