@@ -127,6 +127,7 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 			m := s.Metric
 			lDestinationSvc, destinationSvcOk := m["destination_service"]
 			lSourceWl, sourceWlOk := m["source_workload"]
+			code, _ := m["response_code"]
 			lSourceApp, sourceAppOk := m["source_app"]
 			lDestinationWlNs, _ := m["destination_service_namespace"]
 			lSourceVs, sourceVsOk := m["source_version"]
@@ -157,16 +158,26 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 								if desContext == context {
 									continue
 								}
+								rate := map[string]string{}
+								if s.Value.String() != "0" {
+									rate = map[string]string{
+										string(lProtocol): s.Value.String(),
+										fmt.Sprintf("%s%s", string(lProtocol), "PercentReq"):
+										fmt.Sprintf("%v", 100/len(se.Spec.Endpoints)),
+									}
+								}
 								edge := models.MultiClusterEdge{
 									SourceId:           sourceId,
 									DestinationId:      destinationId,
 									Protocol:           string(lProtocol),
 									SourceContext:      context,
 									DestinationContext: desContext,
-									Rate: models.Rate{
+									/*Rate: models.Rate{
 										Http:           s.Value.String(),
 										HttpPercentReq: fmt.Sprintf("%v", 100/len(se.Spec.Endpoints)),
-									},
+									},*/
+									Rate: rate,
+									Code: string(code),
 									Host: string(lDestinationSvc),
 								}
 								edges = append(edges, edge)

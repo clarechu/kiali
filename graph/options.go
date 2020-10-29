@@ -317,10 +317,11 @@ type Option struct {
 	TelemetryVendor    string            `json:"telemetryVendor"`
 	Appenders          string            `json:"appenders"`
 	Prometheus         string            `json:"prometheus"`
+	Config             *rest.Config      `json:"config"`
 	Clusters           map[string]string `json:"clusters"`
 }
 
-func NewSimpleOption(duration, graphType, groupBy, namespaces, context, prometheusUrl string, clusters map[string]string) Option {
+func NewSimpleOption(duration, graphType, groupBy, namespaces, context, prometheusUrl string, clusters map[string]string, config *rest.Config) Option {
 	return Option{
 		Duration:           duration,
 		GraphType:          graphType,
@@ -335,6 +336,7 @@ func NewSimpleOption(duration, graphType, groupBy, namespaces, context, promethe
 		Namespaces: namespaces,
 		Context:    context,
 		Prometheus: prometheusUrl,
+		Config:     config,
 		Clusters:   clusters,
 	}
 }

@@ -108,12 +108,11 @@ type Elements struct {
 }
 
 type Config struct {
-	Timestamp   int64                     `json:"timestamp"`
-	Duration    int64                     `json:"duration"`
-	GraphType   string                    `json:"graphType"`
-	Context     string                    `json:"context"`
-	Elements    Elements                  `json:"elements"`
-	PassThrough []models.MultiClusterEdge `json:"passThrough"`
+	Timestamp int64    `json:"timestamp"`
+	Duration  int64    `json:"duration"`
+	GraphType string   `json:"graphType"`
+	Context   string   `json:"context"`
+	Elements  Elements `json:"elements"`
 }
 
 //id 经过md5 hash过了
@@ -136,18 +135,33 @@ func multiNodeHash(id string) string {
 }
 
 func NewMultiClusterEdge(multi []models.MultiClusterEdge) (result []*EdgeWrapper) {
-	edges := []*EdgeWrapper{}
+	edges := make([]*EdgeWrapper, 0)
 	for _, e := range multi {
 		sourceIdHash := nodeHash(e.SourceId, e.SourceContext)
 		destIdHash := nodeHash(e.DestinationId, e.DestinationContext)
 		edgeId := edgeHash(sourceIdHash, destIdHash, e.Protocol, e.SourceContext)
-		ed := EdgeData{
-			Id:     edgeId,
-			Source: sourceIdHash,
-			Target: destIdHash,
-			Traffic: ProtocolTraffic{
+		traffic := ProtocolTraffic{
+			Protocol: e.Protocol,
+		}
+		if len(e.Rate) != 0 {
+			traffic = ProtocolTraffic{
 				Protocol: e.Protocol,
-			},
+				Rates:    e.Rate,
+				Responses: Responses{
+					e.Code: &ResponseDetail{Flags: ResponseFlags{
+						"-": "100.0",
+					},
+						Hosts: ResponseHosts{
+							e.Host: "100.0",
+						}},
+				},
+			}
+		}
+		ed := EdgeData{
+			Id:      edgeId,
+			Source:  sourceIdHash,
+			Target:  destIdHash,
+			Traffic: traffic,
 		}
 
 		ew := EdgeWrapper{
@@ -160,8 +174,8 @@ func NewMultiClusterEdge(multi []models.MultiClusterEdge) (result []*EdgeWrapper
 
 // NewConfig is required by the graph/ConfigVendor interface
 func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Config) {
-	nodes := []*NodeWrapper{}
-	edges := []*EdgeWrapper{}
+	nodes := make([]*NodeWrapper, 0)
+	edges := make([]*EdgeWrapper, 0)
 
 	buildConfig(trafficMap, &nodes, &edges, o)
 
@@ -320,6 +334,12 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 			ew := EdgeWrapper{
 				Data: &ed,
 			}
+			//todo 加一个变量如果 没有流量数据就不显示
+			// 后面需要加的功能
+
+			/* if len(ed.Traffic.Rates) != 0 {
+				*edges = append(*edges, &ew)
+			}*/
 			*edges = append(*edges, &ew)
 		}
 	}
