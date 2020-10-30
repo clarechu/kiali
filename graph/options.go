@@ -66,6 +66,10 @@ type CommonOptions struct {
 type ConfigOptions struct {
 	GroupBy string
 	Context string
+	// 是否 需要 没有流量的线
+	DeadEdges bool `json:"deadEdges"`
+	// 是否需要跨集群流量的线
+	PassThrough bool `json:"passThrough"`
 	CommonOptions
 }
 
@@ -80,7 +84,8 @@ type TelemetryOptions struct {
 	AccessibleNamespaces map[string]time.Time
 	Appenders            RequestedAppenders // requested appenders, nil if param not supplied
 	InjectServiceNodes   bool               // inject destination service nodes between source and destination nodes.
-	Namespaces           NamespaceInfoMap
+
+	Namespaces NamespaceInfoMap
 	CommonOptions
 	NodeOptions
 }
@@ -301,24 +306,28 @@ func getAccessibleNamespaces(token string) map[string]time.Time {
 }
 
 type Option struct {
-	App                string            `json:"app"`
-	Namespace          string            `json:"namespace"`
-	Service            string            `json:"service"`
-	Version            string            `json:"version"`
-	Workload           string            `json:"workload"`
-	ConfigVendor       string            `json:"configVendor"`
-	Duration           string            `json:"duration"`
-	GraphType          string            `json:"graphType"`
-	GroupBy            string            `json:"groupBy"`
-	InjectServiceNodes string            `json:"injectServiceNodes"`
-	Namespaces         string            `json:"namespaces"`
-	QueryTime          string            `json:"queryTime"`
-	Context            string            `json:"context"`
-	TelemetryVendor    string            `json:"telemetryVendor"`
-	Appenders          string            `json:"appenders"`
-	Prometheus         string            `json:"prometheus"`
-	Config             *rest.Config      `json:"config"`
-	Clusters           map[string]string `json:"clusters"`
+	App                string `json:"app"`
+	Namespace          string `json:"namespace"`
+	Service            string `json:"service"`
+	Version            string `json:"version"`
+	Workload           string `json:"workload"`
+	ConfigVendor       string `json:"configVendor"`
+	Duration           string `json:"duration"`
+	GraphType          string `json:"graphType"`
+	GroupBy            string `json:"groupBy"`
+	InjectServiceNodes string `json:"injectServiceNodes"`
+	Namespaces         string `json:"namespaces"`
+	QueryTime          string `json:"queryTime"`
+	Context            string `json:"context"`
+	TelemetryVendor    string `json:"telemetryVendor"`
+	Appenders          string `json:"appenders"`
+	// 是否 需要 没有流量的线
+	DeadEdges bool `json:"deadEdges"`
+	// 是否需要跨集群流量的线
+	PassThrough bool              `json:"passThrough"`
+	Prometheus  string            `json:"prometheus"`
+	Config      *rest.Config      `json:"config"`
+	Clusters    map[string]string `json:"clusters"`
 }
 
 func NewSimpleOption(duration, graphType, groupBy, namespaces, context, prometheusUrl string, clusters map[string]string, config *rest.Config) Option {
@@ -333,11 +342,13 @@ func NewSimpleOption(duration, graphType, groupBy, namespaces, context, promethe
 			"istio," +
 			//"securityPolicy,"+
 			"unusedNode",
-		Namespaces: namespaces,
-		Context:    context,
-		Prometheus: prometheusUrl,
-		Config:     config,
-		Clusters:   clusters,
+		Namespaces:  namespaces,
+		Context:     context,
+		Prometheus:  prometheusUrl,
+		Config:      config,
+		Clusters:    clusters,
+		DeadEdges:   false,
+		PassThrough: true,
 	}
 }
 
@@ -354,6 +365,16 @@ func (o Option) SetApp(app, version string) Option {
 
 func (o Option) SetNamespace(namespace string) Option {
 	o.Namespace = namespace
+	return o
+}
+
+func (o Option) SetPassThrough(passThrough bool) Option {
+	o.PassThrough = passThrough
+	return o
+}
+
+func (o Option) SetDeadEdges(deadEdges bool) Option {
+	o.DeadEdges = deadEdges
 	return o
 }
 
@@ -483,8 +504,10 @@ func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Optio
 		ConfigVendor:    configVendor,
 		TelemetryVendor: telemetryVendor,
 		ConfigOptions: ConfigOptions{
-			GroupBy: groupBy,
-			Context: context,
+			GroupBy:     groupBy,
+			DeadEdges:   o.DeadEdges,
+			PassThrough: o.PassThrough,
+			Context:     context,
 			CommonOptions: CommonOptions{
 				Duration:  time.Duration(duration),
 				GraphType: graphType,

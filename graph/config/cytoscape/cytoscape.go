@@ -134,7 +134,7 @@ func multiNodeHash(id string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(id)))
 }
 
-func NewMultiClusterEdge(multi []models.MultiClusterEdge) (result []*EdgeWrapper) {
+func NewMultiClusterEdge(multi []models.MultiClusterEdge, o graph.Options) (result []*EdgeWrapper) {
 	edges := make([]*EdgeWrapper, 0)
 	for _, e := range multi {
 		sourceIdHash := nodeHash(e.SourceId, e.SourceContext)
@@ -167,7 +167,11 @@ func NewMultiClusterEdge(multi []models.MultiClusterEdge) (result []*EdgeWrapper
 		ew := EdgeWrapper{
 			Data: &ed,
 		}
-		edges = append(edges, &ew)
+
+		if o.DeadEdges || len(ed.Traffic.Rates) != 0 {
+			edges = append(edges, &ew)
+		}
+		//edges = append(edges, &ew)
 	}
 	return edges
 }
@@ -337,10 +341,10 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 			//todo 加一个变量如果 没有流量数据就不显示
 			// 后面需要加的功能
 
-			/* if len(ed.Traffic.Rates) != 0 {
+			if o.DeadEdges || len(ed.Traffic.Rates) != 0 {
 				*edges = append(*edges, &ew)
-			}*/
-			*edges = append(*edges, &ew)
+			}
+			//*edges = append(*edges, &ew)
 		}
 	}
 }

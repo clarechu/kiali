@@ -42,12 +42,20 @@ func NewGraphApi(option graph.Option, span opentracing.Span) (*GraphApi, error) 
 
 func (g *GraphApi) RegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error) {
 	graphNamespacesCluster(g.business, g.options, span, loads)
-	return passEdges(g.business, g.options, span)
+	if g.options.PassThrough {
+		return passEdges(g.business, g.options, span)
+
+	}
+	return edges, err
 }
 
 func (g *GraphApi) NodeRegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error) {
 	graphNodeCluster(g.business, g.options, span, loads)
-	return passNodeEdges(g.business, g.options, span)
+	if g.options.PassThrough {
+		return passNodeEdges(g.business, g.options, span)
+
+	}
+	return edges, err
 }
 
 // graphNamespacesCluster 单个集群的namespaces 级别的流量视图
@@ -154,7 +162,7 @@ func passThroughEdges(o graph.Options, business *business.Layer) (edge []*cytosc
 		log.Debugf("%v", edgs)
 		return
 	}
-	edge = cytoscape.NewMultiClusterEdge(edgs)
+	edge = cytoscape.NewMultiClusterEdge(edgs, o)
 	return
 }
 
@@ -173,7 +181,7 @@ func passThroughEdgesNode(o graph.Options, business *business.Layer) (edge []*cy
 		log.Debugf("%v", edgs)
 		return
 	}
-	edge = cytoscape.NewMultiClusterEdge(edgs)
+	edge = cytoscape.NewMultiClusterEdge(edgs, o)
 	return
 }
 
