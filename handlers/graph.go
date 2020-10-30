@@ -122,16 +122,14 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 		"cluster03": "10.10.13.59",
 	}
 	options := []graph.Option{
-		graph.NewSimpleOption("60s", "versionedApp", "app",
-			"poc,poc-demo", "cluster01", "http://10.10.13.30:9090",
+		graph.NewSimpleOption("poc,poc-demo", "cluster01", "http://10.10.13.30:9090",
 			clusters, GetRestConfig("config")).SetDeadEdges(true),
-		graph.NewSimpleOption("60s", "versionedApp", "app",
-			"poc,poc-demo", "cluster02", "http://10.10.13.34:9090",
+		graph.NewSimpleOption("poc,poc-demo", "cluster02", "http://10.10.13.34:9090",
 			clusters, GetRestConfig("config_34")).SetDeadEdges(true),
-		graph.NewSimpleOption("60s", "versionedApp", "app",
-			"poc,poc-demo", "cluster03", "http://10.10.13.59:9090",
+		graph.NewSimpleOption("poc,poc-demo", "cluster03", "http://10.10.13.59:9090",
 			clusters, GetRestConfig("config_59")).SetDeadEdges(true),
 	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(options))
 	clusterCha := make(map[string]interface{}, 0)
@@ -174,25 +172,26 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 		"cluster03": "10.10.13.59",
 	}
 	options := []graph.Option{
-		graph.NewSimpleOption("60s", "versionedApp", "app", "",
+		graph.NewSimpleOption("",
 			"cluster01", "http://10.10.13.30:9090", clusters, GetRestConfig("config")).
 			//SetApp("greeter-server", "v1").
 			SetService("greeter-server").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
-		graph.NewSimpleOption("60s", "versionedApp", "app", "",
+		graph.NewSimpleOption("",
 			"cluster02", "http://10.10.13.34:9090", clusters, GetRestConfig("config_34")).
 			//SetApp("greeter-server", "v1").
 			SetService("greeter-server").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
-		graph.NewSimpleOption("60s", "versionedApp", "app", "",
+		graph.NewSimpleOption("",
 			"cluster03", "http://10.10.13.59:9090", clusters, GetRestConfig("config_59")).
 			//SetApp("greeter-server", "v1").
 			SetService("greeter-server").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
 	}
+
 	wg := sync.WaitGroup{}
 	wg.Add(len(options))
 	clusterCha := make(map[string]interface{}, 0)

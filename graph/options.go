@@ -330,12 +330,12 @@ type Option struct {
 	Clusters    map[string]string `json:"clusters"`
 }
 
-func NewSimpleOption(duration, graphType, groupBy, namespaces, context, prometheusUrl string, clusters map[string]string, config *rest.Config) Option {
+func NewSimpleOption(namespaces, context, prometheusUrl string, clusters map[string]string, config *rest.Config) Option {
 	return Option{
-		Duration:           duration,
-		GraphType:          graphType,
+		Duration:           "60s",
+		GraphType:          "versionedApp",
 		InjectServiceNodes: "true",
-		GroupBy:            groupBy,
+		GroupBy:            "app",
 		Appenders: "deadNode," +
 			"sidecarsCheck," +
 			//"serviceEntry," +
