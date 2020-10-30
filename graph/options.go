@@ -331,14 +331,30 @@ func NewSimpleOption(duration, graphType, groupBy, namespaces, context, promethe
 			"sidecarsCheck," +
 			//"serviceEntry," +
 			"istio," +
-			"unusedNode," +
-			"securityPolicy",
+			//"securityPolicy,"+
+			"unusedNode",
 		Namespaces: namespaces,
 		Context:    context,
 		Prometheus: prometheusUrl,
 		Config:     config,
 		Clusters:   clusters,
 	}
+}
+
+func (o Option) SetService(service string) Option {
+	o.Service = service
+	return o
+}
+
+func (o Option) SetApp(app, version string) Option {
+	o.App = app
+	o.Version = version
+	return o
+}
+
+func (o Option) SetNamespace(namespace string) Option {
+	o.Namespace = namespace
+	return o
 }
 
 func (o *Option) NewGraphOptions(restConfig *rest.Config, address string) (Options, error) {

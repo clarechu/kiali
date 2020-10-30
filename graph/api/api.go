@@ -20,6 +20,11 @@ type GraphApi struct {
 	option   graph.Option
 }
 
+type GraphApiInterface interface {
+	RegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error)
+	NodeRegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error)
+}
+
 func NewGraphApi(option graph.Option, span opentracing.Span) (*GraphApi, error) {
 	graphApi := opentracing.StartSpan("graph", opentracing.ChildOf(span.Context()))
 	graphApi.SetTag("namespaces", option.Namespaces)
@@ -36,12 +41,17 @@ func NewGraphApi(option graph.Option, span opentracing.Span) (*GraphApi, error) 
 }
 
 func (g *GraphApi) RegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error) {
-	graphNodeCluster(g.business, g.options, span, loads)
+	graphNamespacesCluster(g.business, g.options, span, loads)
 	return passEdges(g.business, g.options, span)
 }
 
-//GraphNodeCluster 单个集群的流量视图
-func graphNodeCluster(business *business.Layer, o graph.Options, span opentracing.Span, loads map[string]interface{}) {
+func (g *GraphApi) NodeRegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error) {
+	graphNodeCluster(g.business, g.options, span, loads)
+	return passNodeEdges(g.business, g.options, span)
+}
+
+// graphNamespacesCluster 单个集群的namespaces 级别的流量视图
+func graphNamespacesCluster(business *business.Layer, o graph.Options, span opentracing.Span, loads map[string]interface{}) {
 	graphNamespacesSpan := opentracing.StartSpan("get graph", opentracing.FollowsFrom(span.Context()))
 	graphNamespacesSpan.LogKV("func GraphNamespaces start", "")
 	_, payload, err := GraphNamespaces(business, o, graphNamespacesSpan)
@@ -52,11 +62,30 @@ func graphNodeCluster(business *business.Layer, o graph.Options, span opentracin
 	loads[o.Context] = payload
 }
 
+//graphNodeCluster  单个集群的 某个节点 级别的流量视图
+func graphNodeCluster(business *business.Layer, o graph.Options, span opentracing.Span, loads map[string]interface{}) {
+	graphNamespacesSpan := opentracing.StartSpan("get graph", opentracing.FollowsFrom(span.Context()))
+	graphNamespacesSpan.LogKV("func GraphNamespaces start", "")
+	_, payload := GraphNode(business, o)
+	graphNamespacesSpan.Finish()
+	/*	if err != nil {
+		return
+	}*/
+	loads[o.Context] = payload
+}
+
 //passEdges 获取当前集群跨集群的线
 func passEdges(businessNoAuth *business.Layer, o graph.Options, optionSpan opentracing.Span) (edges []*cytoscape.EdgeWrapper, err error) {
 	passSpan := opentracing.StartSpan("pass Through", opentracing.ChildOf(optionSpan.Context()))
 	passSpan.LogKV("func GraphNamespaces start", "")
 	return passThroughEdges(o, businessNoAuth)
+}
+
+//passEdges 获取当前集群跨集群的线
+func passNodeEdges(businessNoAuth *business.Layer, o graph.Options, optionSpan opentracing.Span) (edges []*cytoscape.EdgeWrapper, err error) {
+	passSpan := opentracing.StartSpan("pass Through", opentracing.ChildOf(optionSpan.Context()))
+	passSpan.LogKV("func GraphNamespaces start", "")
+	return passThroughEdgesNode(o, businessNoAuth)
 }
 
 // GraphNamespaces generates a namespaces graph using the provided options
@@ -84,6 +113,32 @@ func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing
 	return code, config, nil
 }
 
+// GraphNode generates a node graph using the provided options
+// Get cross-cluster traffic lines
+func GraphNode(business *business.Layer, o graph.Options) (code int, config interface{}) {
+	if len(o.Namespaces) != 1 {
+		graph.Error(fmt.Sprintf("Node graph does not support the 'namespaces' query parameter or the 'all' namespace"))
+	}
+
+	// time how long it takes to generate this graph
+	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
+	defer promtimer.ObserveDuration()
+
+	switch o.TelemetryVendor {
+	case graph.VendorIstio:
+		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
+		graph.CheckError(err)
+		//
+		code, config = graphNodeIstio(business, prom, o)
+	default:
+		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
+	}
+	// update metrics
+	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes, 0)
+
+	return code, config
+}
+
 //passThrough 线
 func passThroughEdges(o graph.Options, business *business.Layer) (edge []*cytoscape.EdgeWrapper, err error) {
 	prom, err := prometheus.NewClientNoAuth(business.PromAddress)
@@ -94,7 +149,26 @@ func passThroughEdges(o graph.Options, business *business.Layer) (edge []*cytosc
 	globalInfo.Context = o.Context
 	globalInfo.Business = business
 	globalInfo.PromClient = prom
-	edgs, err := istio.AddMultiClusterEdge(o.TelemetryOptions, globalInfo, o.Clusters, o.Context, prom)
+	edgs, err := istio.AddMultiClusterEdge(o.TelemetryOptions, globalInfo, o.Clusters, o.Context)
+	if err != nil {
+		log.Debugf("%v", edgs)
+		return
+	}
+	edge = cytoscape.NewMultiClusterEdge(edgs)
+	return
+}
+
+//passThroughEdgesNode
+func passThroughEdgesNode(o graph.Options, business *business.Layer) (edge []*cytoscape.EdgeWrapper, err error) {
+	prom, err := prometheus.NewClientNoAuth(business.PromAddress)
+	if err != nil {
+		return
+	}
+	globalInfo := graph.NewAppenderGlobalInfo()
+	globalInfo.Context = o.Context
+	globalInfo.Business = business
+	globalInfo.PromClient = prom
+	edgs, err := istio.NodeMultiClusterEdge(o, globalInfo, o.Clusters, o.Context)
 	if err != nil {
 		log.Debugf("%v", edgs)
 		return
@@ -110,6 +184,7 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	globalInfo.Context = o.Context
 	globalInfo.Business = business
 	globalInfo.PromClient = prom
+	// 这个是buildNamespaces TrafficMap
 	trafficMap := istio.BuildNamespacesTrafficMap(o.TelemetryOptions, prom, globalInfo, span)
 	genSpan := opentracing.StartSpan("generate", opentracing.FollowsFrom(span.Context()))
 	code, config = generateGraph(trafficMap, o)
@@ -117,38 +192,14 @@ func graphNamespacesIstio(business *business.Layer, prom *prometheus.Client, o g
 	return code, config
 }
 
-// GraphNode generates a node graph using the provided options
-// Get cross-cluster traffic lines
-func GraphNode(business *business.Layer, o graph.Options) (code int, config interface{}) {
-	if len(o.Namespaces) != 1 {
-		graph.Error(fmt.Sprintf("Node graph does not support the 'namespaces' query parameter or the 'all' namespace"))
-	}
-
-	// time how long it takes to generate this graph
-	promtimer := internalmetrics.GetGraphGenerationTimePrometheusTimer(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes)
-	defer promtimer.ObserveDuration()
-
-	switch o.TelemetryVendor {
-	case graph.VendorIstio:
-		prom, err := prometheus.NewClient()
-		graph.CheckError(err)
-		code, config = graphNodeIstio(business, prom, o)
-	default:
-		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
-	}
-	// update metrics
-	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes, 0)
-
-	return code, config
-}
-
-// graphNodeIstio provides a test hook that accepts mock clients
+// graphNodeIstio provides a test hook that accepts mock clients 获取节点的信息 和namespace有点不一样
 func graphNodeIstio(business *business.Layer, client *prometheus.Client, o graph.Options) (code int, config interface{}) {
 
 	// Create a 'global' object to store the business. Global only to the request.
 	globalInfo := graph.NewAppenderGlobalInfo()
 	globalInfo.Business = business
-
+	globalInfo.PromClient = client
+	//BuildNode TrafficMap
 	trafficMap := istio.BuildNodeTrafficMap(o.TelemetryOptions, client, globalInfo)
 	code, config = generateGraph(trafficMap, o)
 
