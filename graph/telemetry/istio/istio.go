@@ -386,7 +386,7 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 	}
 	// Section for TCP services (note, there is no TCP Istio traffic)
 	tcpMetric := "istio_tcp_sent_bytes_total"
-
+	//tcpMetric = "istio_requests_total"
 	if !isIstioNamespace {
 		// 1) query for traffic originating from "unknown" (i.e. the internet)
 		tcpGroupBy := fmt.Sprintf("source_workload_namespace,source_workload,source_%s,source_%s,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_%s,destination_%s,response_flags", appLabel, verLabel, appLabel, verLabel)
