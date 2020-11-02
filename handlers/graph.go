@@ -175,19 +175,19 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 		graph.NewSimpleOption("",
 			"cluster01", "http://10.10.13.30:9090", clusters, GetRestConfig("config")).
 			//SetApp("greeter-server", "v1").
-			SetService("greeter-server").
+			SetService("greeter-client").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
 		graph.NewSimpleOption("",
 			"cluster02", "http://10.10.13.34:9090", clusters, GetRestConfig("config_34")).
 			//SetApp("greeter-server", "v1").
-			SetService("greeter-server").
+			SetService("greeter-client").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
 		graph.NewSimpleOption("",
 			"cluster03", "http://10.10.13.59:9090", clusters, GetRestConfig("config_59")).
 			//SetApp("greeter-server", "v1").
-			SetService("greeter-server").
+			SetService("greeter-client").
 			SetDeadEdges(true).
 			SetNamespace("poc-demo"),
 	}

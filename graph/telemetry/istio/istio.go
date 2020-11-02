@@ -351,14 +351,14 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 	populateTrafficMap(trafficMap, &extVector, o)
 
 	// 3) query for internal traffic, originating from a workload inside of the namespace
-	query = fmt.Sprintf(`sum(rate(%s{reporter="source",source_workload_namespace="%s"} [%vs])) by (%s)`,
+	// 注释掉 reporter="source",
+	query = fmt.Sprintf(`sum(rate(%s{source_workload_namespace="%s"} [%vs])) by (%s)`,
 		requestsMetric,
 		namespace,
 		int(duration.Seconds()), // range duration for the query
 		groupBy)
 	intVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 	populateTrafficMap(trafficMap, &intVector, o)
-
 	// Query3 misses istio-to-istio traffic, which is only reported destination-side, we must perform an additional query
 	if isIstioNamespace {
 		// find traffic from the source istio namespace to any of the requested istio namespaces
@@ -374,7 +374,16 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 		intIstioVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 		populateTrafficMap(trafficMap, &intIstioVector, o)
 	}
-
+	//todo
+	for k, v := range trafficMap {
+		if !strings.Contains(k, "unknown") {
+			if _, ok := v.Metadata["httpIn"]; !ok {
+				for _, edges := range v.Edges {
+					delete(edges.Metadata, "http")
+				}
+			}
+		}
+	}
 	// Section for TCP services (note, there is no TCP Istio traffic)
 	tcpMetric := "istio_tcp_sent_bytes_total"
 
@@ -398,7 +407,8 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 			tcpGroupBy)
 		tcpExtVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 		populateTrafficMapTCP(trafficMap, &tcpExtVector, o)
-
+		intVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
+		populateTrafficMap(trafficMap, &intVector, o)
 		// 3) query for traffic originating from a workload inside of the namespace PassthroughCluster
 		//todo 获取跨集群的数据
 		/*		istioCountMetric := "istio_request_bytes_count"
@@ -519,7 +529,6 @@ func addTraffic(trafficMap graph.TrafficMap, val float64, protocol, code, flags,
 	if destFound {
 		handleMisconfiguredLabels(dest, destApp, destVer, val, o)
 	}
-
 	graph.AddToMetadata(protocol, val, code, flags, host, source.Metadata, dest.Metadata, edge.Metadata)
 
 	return source, dest
