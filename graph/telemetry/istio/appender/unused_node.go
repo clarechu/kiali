@@ -7,6 +7,7 @@ import (
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/models"
 	"github.com/kiali/kiali/prometheus"
+	"strings"
 )
 
 const UnusedNodeAppenderName = "unusedNode"
@@ -69,7 +70,9 @@ func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo 
 func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, namespace string, services []models.ServiceDetails, workloads []models.WorkloadListItem) {
 	traffic := make(map[string]interface{}, 0)
 	for k := range trafficMap {
-		traffic[k] = 0
+		if !strings.Contains(k, "unknown") {
+			traffic[k] = 0
+		}
 	}
 	for _, svc := range services {
 		graphId, _ := graph.Id(namespace, svc.Service.Name, "", "", "", "", graph.GraphTypeService)
