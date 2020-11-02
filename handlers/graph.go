@@ -122,11 +122,11 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 		"cluster03": "10.10.13.59",
 	}
 	options := []graph.Option{
-		graph.NewSimpleOption("poc,poc-demo", "cluster01", "http://10.10.13.30:9090",
+		graph.NewSimpleOption("poc-demo2", "cluster02", "http://10.10.13.30:9090",
 			clusters, GetRestConfig("config")).SetDeadEdges(true),
-		graph.NewSimpleOption("poc,poc-demo", "cluster02", "http://10.10.13.34:9090",
+		graph.NewSimpleOption("poc-demo2", "cluster01", "http://10.10.13.34:9090",
 			clusters, GetRestConfig("config_34")).SetDeadEdges(true),
-		graph.NewSimpleOption("poc,poc-demo", "cluster03", "http://10.10.13.59:9090",
+		graph.NewSimpleOption("poc-demo2", "cluster03", "http://10.10.13.59:9090",
 			clusters, GetRestConfig("config_59")).SetDeadEdges(true),
 	}
 
