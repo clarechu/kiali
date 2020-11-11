@@ -29,6 +29,7 @@ package handlers
 //  Note: some handlers may ignore some query parameters.
 //  Note: vendors may support additional, vendor-specific query parameters.
 //
+
 import (
 	"context"
 	"encoding/json"
@@ -110,6 +111,19 @@ func respond(w http.ResponseWriter, code int, payload interface{}) {
 	RespondWithError(w, code, payload.(string))
 }
 
+var HOME_DIR = "/root/.kube/"
+
+type GraphNamespacesResponse struct {
+	Code    int       `json:"code"`
+	Message string    `json:"message"`
+	Data    GraphName `json:"data"`
+}
+
+type GraphName struct {
+	Cluster     map[string]interface{} `json:"cluster"`
+	Passthrough interface{}            `json:"passthrough"`
+}
+
 //GraphNamespace
 func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 	ctx := context.TODO()
@@ -155,8 +169,15 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 	}
 	wg.Wait()
 	optionSpan.Finish()
-	clusterCha["passthrough"] = edges
-	b, _ := json.MarshalIndent(clusterCha, "", "")
+	resp := &GraphNamespacesResponse{
+		Code:    200,
+		Message: "success",
+		Data: GraphName{
+			Cluster:     clusterCha,
+			Passthrough: edges,
+		},
+	}
+	b, _ := json.MarshalIndent(resp, "", "")
 	w.Write(b)
 }
 
@@ -223,7 +244,7 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetRestConfig(name string) (restConfig *rest.Config) {
-	path := "/Users/clare/.kube/" + name
+	path := HOME_DIR + name
 	file, err := os.Open(path)
 	if err != nil {
 		return
