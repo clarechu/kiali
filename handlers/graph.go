@@ -113,6 +113,8 @@ func respond(w http.ResponseWriter, code int, payload interface{}) {
 
 var HOME_DIR = "/root/.kube/"
 
+//var HOME_DIR = "/Users/clare/.kube/"
+
 type GraphNamespacesResponse struct {
 	Code    int       `json:"code"`
 	Message string    `json:"message"`
@@ -238,12 +240,14 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 	}
 	wg.Wait()
 	optionSpan.Finish()
+	//passthroughcluster
 	clusterCha["passthrough"] = edges
 	b, _ := json.MarshalIndent(clusterCha, "", "")
 	w.Write(b)
 }
 
 func GetRestConfig(name string) (restConfig *rest.Config) {
+	//path := "/Users/clare/.kube/" + name
 	path := HOME_DIR + name
 	file, err := os.Open(path)
 	if err != nil {

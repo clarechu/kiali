@@ -86,13 +86,24 @@ func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, names
 	for k := range traffic {
 		delete(trafficMap, k)
 	}
+	// 下面那种写法导致数组越界了 现在测试一下看看可不可以 有没有用
 	for k := range traffic {
 		for _, tv := range trafficMap {
-			for i, edge := range tv.Edges {
-				if edge.Source.ID == k || edge.Dest.ID == k {
+			for i := 0; i < len(tv.Edges); {
+				if tv.Edges[i].Source.ID == k || tv.Edges[i].Dest.ID == k {
 					tv.Edges = append(tv.Edges[:i], tv.Edges[i+1:]...)
+				} else {
+					i++
 				}
 			}
+
+			/*
+				for i, edge := range tv.Edges {
+					if edge.Source.ID == k || edge.Dest.ID == k {
+						tv.Edges = append(tv.Edges[:i], tv.Edges[i+1:]...)
+						i--
+					}
+				}*/
 		}
 	}
 }
