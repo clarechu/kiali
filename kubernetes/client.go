@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
 	osapps_v1 "github.com/openshift/api/apps/v1"
 	osproject_v1 "github.com/openshift/api/project/v1"
 	osroutes_v1 "github.com/openshift/api/route/v1"
@@ -213,7 +212,7 @@ func (client *IstioClient) GetToken() string {
 // Returns configuration if Kiali is not int Cluster when InCluster is false
 // It returns an error on any problem
 func ConfigClient() (*rest.Config, error) {
-	if kialiConfig.Get().InCluster {
+	/*	if kialiConfig.Get().InCluster {
 		incluster, err := rest.InClusterConfig()
 		if err != nil {
 			return nil, err
@@ -221,10 +220,13 @@ func ConfigClient() (*rest.Config, error) {
 		incluster.QPS = kialiConfig.Get().KubernetesConfig.QPS
 		incluster.Burst = kialiConfig.Get().KubernetesConfig.Burst
 		return incluster, nil
-	}
+	}*/
 	host, port := os.Getenv("KUBERNETES_SERVICE_HOST"), os.Getenv("KUBERNETES_SERVICE_PORT")
 	if len(host) == 0 || len(port) == 0 {
-		return nil, fmt.Errorf("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined")
+		//return nil, fmt.Errorf("unable to load in-cluster configuration, KUBERNETES_SERVICE_HOST and KUBERNETES_SERVICE_PORT must be defined")
+		kubeConfig := GetKubeConfig()
+		config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
+		return config, err
 	}
 	return &rest.Config{
 		// TODO: switch to using cluster DNS.

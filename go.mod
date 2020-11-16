@@ -17,6 +17,7 @@ require (
 	github.com/jaegertracing/jaeger v1.15.1
 	github.com/jtblin/go-ldap-client v0.0.0-20161205001958-ad9f2ea47a83
 	github.com/kiali/k-charted v0.5.1-0.20200427094832-5ae8b0ffa6d4
+	github.com/magiconair/properties v1.8.1
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/openshift/api v0.0.0-20200221181648-8ce0047d664f
 	github.com/opentracing/opentracing-go v1.2.0

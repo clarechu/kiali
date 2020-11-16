@@ -5,6 +5,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/handlers"
+	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/util"
 	"github.com/opentracing/opentracing-go"
@@ -73,7 +74,17 @@ func NewServer() error {
 		log.Errorf("Could not initialize jaeger tracer: %s", err.Error())
 		return err
 	}
-	http.HandleFunc("/", handlers.GraphNamespaces)
+	//http.HandleFunc("/", handlers.GraphNamespaces)
 	http.HandleFunc("/node", handlers.GraphNode)
+	configClient, err := kubernetes.ConfigClient()
+	if err != nil {
+		return err
+	}
+	clientSet, err := kubernetes.GetDefaultK8sClientSet()
+	if err != nil {
+		return err
+	}
+	graphController := handlers.NewGraphController(configClient, clientSet)
+	http.HandleFunc("graph/namespace/", graphController.GetNamespaces)
 	return http.ListenAndServe(":8000", nil)
 }
