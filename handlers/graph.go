@@ -122,8 +122,8 @@ type GraphNamespacesResponse struct {
 }
 
 type GraphName struct {
-	Cluster     map[string]interface{} `json:"cluster"`
-	Passthrough interface{}            `json:"passthrough"`
+	Cluster     interface{} `json:"cluster"`
+	Passthrough interface{} `json:"passthrough"`
 }
 
 //GraphNamespace

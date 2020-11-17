@@ -25,7 +25,7 @@
                     "application/json"
                 ],
                 "summary": "graph-namespace",
-                "operationId": "get-string-by-int",
+                "operationId": "GetNamespaces",
                 "parameters": [
                     {
                         "type": "string",
@@ -60,6 +60,64 @@
                         "schema": {
                             "$ref": "#/definitions/handlers.GraphNamespacesResponse"
                         }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.responseError"
+                        }
+                    }
+                }
+            }
+        },
+        "/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}": {
+            "get": {
+                "description": "通过node来查询流量视图",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "graph-Node",
+                "operationId": "GetNode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时长",
+                        "name": "duration",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否去掉没有流量的线",
+                        "name": "deadEdges",
+                        "in": "path"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否需要加多集群的线",
+                        "name": "passThrough",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GraphNamespacesResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.responseError"
+                        }
                     }
                 }
             }
@@ -89,6 +147,17 @@
                     "$ref": "#/definitions/handlers.GraphName"
                 },
                 "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.responseError": {
+            "type": "object",
+            "properties": {
+                "detail": {
+                    "type": "string"
+                },
+                "error": {
                     "type": "string"
                 }
             }

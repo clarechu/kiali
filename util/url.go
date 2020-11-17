@@ -11,10 +11,10 @@ import (
 
 //resolution path
 func Parse(url string, data interface{}) (err error) {
-	match, _ := regexp.MatchString("^\\/.*", url)
+	match, _ := regexp.MatchString("^/.*", url)
 	if match {
 		if len(url) > 1 {
-			url = url[1:len(url)]
+			url = url[1:]
 		} else {
 			return
 		}

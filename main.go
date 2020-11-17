@@ -106,7 +106,7 @@ func NewServer() error {
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("http://localhost:8000/swagger/doc.json"), //The url pointing to API definition"
 	))
-	r.Get("/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}", graphController.GetNamespaces)
-	r.Get("/node", handlers.GraphNode)
+	r.Get("/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}", graphController.GetNamespacesController)
+	r.Get("/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}", graphController.GetNodeController)
 	return http.ListenAndServe(":8000", r)
 }

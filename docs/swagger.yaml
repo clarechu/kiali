@@ -18,6 +18,13 @@ definitions:
       message:
         type: string
     type: object
+  handlers.responseError:
+    properties:
+      detail:
+        type: string
+      error:
+        type: string
+    type: object
 host: localhost:8000
 info:
   contact:
@@ -37,7 +44,7 @@ paths:
       consumes:
       - application/json
       description: 通过namespace来查询流量视图
-      operationId: get-string-by-int
+      operationId: GetNamespaces
       parameters:
       - description: 命名空间
         in: path
@@ -62,5 +69,44 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/handlers.GraphNamespacesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.responseError'
       summary: graph-namespace
+  /graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}:
+    get:
+      consumes:
+      - application/json
+      description: 通过node来查询流量视图
+      operationId: GetNode
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 时长
+        in: path
+        name: duration
+        required: true
+        type: string
+      - description: 是否去掉没有流量的线
+        in: path
+        name: deadEdges
+        type: boolean
+      - description: 是否需要加多集群的线
+        in: path
+        name: passThrough
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GraphNamespacesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.responseError'
+      summary: graph-Node
 swagger: "2.0"
