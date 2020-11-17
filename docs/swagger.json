@@ -1,0 +1,97 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a sample server Petstore server.",
+        "title": "Swagger Kiali API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8000",
+    "basePath": "/",
+    "paths": {
+        "/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}": {
+            "get": {
+                "description": "通过namespace来查询流量视图",
+                "consumes": [
+                    "application/json"
+                ],
+                "summary": "graph-namespace",
+                "operationId": "get-string-by-int",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "命名空间",
+                        "name": "namespace",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "时长",
+                        "name": "duration",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否去掉没有流量的线",
+                        "name": "deadEdges",
+                        "in": "path"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "是否需要加多集群的线",
+                        "name": "passThrough",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handlers.GraphNamespacesResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handlers.GraphName": {
+            "type": "object",
+            "properties": {
+                "cluster": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "passthrough": {
+                    "type": "object"
+                }
+            }
+        },
+        "handlers.GraphNamespacesResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
+                    "type": "object",
+                    "$ref": "#/definitions/handlers.GraphName"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

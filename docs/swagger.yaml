@@ -1,0 +1,66 @@
+basePath: /
+definitions:
+  handlers.GraphName:
+    properties:
+      cluster:
+        additionalProperties: true
+        type: object
+      passthrough:
+        type: object
+    type: object
+  handlers.GraphNamespacesResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/handlers.GraphName'
+        type: object
+      message:
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Kiali API
+  version: "1.0"
+paths:
+  /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}:
+    get:
+      consumes:
+      - application/json
+      description: 通过namespace来查询流量视图
+      operationId: get-string-by-int
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 时长
+        in: path
+        name: duration
+        required: true
+        type: string
+      - description: 是否去掉没有流量的线
+        in: path
+        name: deadEdges
+        type: boolean
+      - description: 是否需要加多集群的线
+        in: path
+        name: passThrough
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GraphNamespacesResponse'
+      summary: graph-namespace
+swagger: "2.0"
