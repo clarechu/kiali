@@ -357,6 +357,11 @@ func (o Option) SetService(service string) Option {
 	return o
 }
 
+func (o Option) SetDuration(duration string) Option {
+	o.Duration = duration
+	return o
+}
+
 func (o Option) SetApp(app, version string) Option {
 	o.App = app
 	o.Version = version
