@@ -3,7 +3,6 @@ definitions:
   handlers.GraphName:
     properties:
       cluster:
-        additionalProperties: true
         type: object
       passthrough:
         type: object
@@ -89,6 +88,11 @@ paths:
       - description: 时长
         in: path
         name: duration
+        required: true
+        type: string
+      - description: service 名称
+        in: path
+        name: service
         required: true
         type: string
       - description: 是否去掉没有流量的线

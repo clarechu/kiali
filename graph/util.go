@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"github.com/kiali/kiali/log"
 	nethttp "net/http"
 )
 
@@ -35,6 +36,7 @@ func Panic(message string, code int) Response {
 // CheckError panics with the supplied error if it is non-nil
 func CheckError(err error) {
 	if err != nil {
+		log.Errorf("panic :%v", err)
 		panic(err.Error)
 	}
 }

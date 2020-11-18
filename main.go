@@ -6,23 +6,16 @@ import (
 	"github.com/golang/glog"
 	"github.com/kiali/kiali/config"
 	_ "github.com/kiali/kiali/docs"
-	"github.com/kiali/kiali/handlers"
-	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/log"
+	"github.com/kiali/kiali/routers"
 	"github.com/kiali/kiali/util"
-	"github.com/opentracing/opentracing-go"
-	"github.com/swaggo/http-swagger"
-	"github.com/uber/jaeger-client-go"
-	jaegercfg "github.com/uber/jaeger-client-go/config"
-	jaegerlog "github.com/uber/jaeger-client-go/log"
-	"github.com/uber/jaeger-lib/metrics"
 	"net/http"
 )
 
 func init() {
 	// log everything to stderr so that it can be easily gathered by logs, separate log files are problematic with containers
 	_ = flag.Set("logtostderr", "true")
-	flag.Set("v", "5")
+	_ = flag.Set("v", "5")
 
 }
 
@@ -64,49 +57,23 @@ func main() {
 	}
 
 	log.Tracef("Kiali Configuration:\n%+v", config.Get().Server.Address)
-	log.Errorf("server start %v", NewServer())
-
+	r, err := NewServer()
+	if err != nil {
+		log.Errorf("new server error:%v", err)
+		return
+	}
+	Start(r)
 }
 
-func NewServer() error {
-	cfg := jaegercfg.Configuration{
-		ServiceName: "kiali",
-		Sampler: &jaegercfg.SamplerConfig{
-			Type:  jaeger.SamplerTypeConst,
-			Param: 1,
-		},
-		Reporter: &jaegercfg.ReporterConfig{
-			LogSpans:           true,
-			LocalAgentHostPort: "10.10.13.30:26034", // 替换host
-		},
-	}
-	jLogger := jaegerlog.StdLogger
-	jMetricsFactory := metrics.NullFactory
-	tracer, _, err := cfg.NewTracer(
-		jaegercfg.Logger(jLogger),
-		jaegercfg.Metrics(jMetricsFactory),
-	)
-	opentracing.SetGlobalTracer(tracer)
+func NewServer() (*chi.Mux, error) {
+	err := routers.InitOpentracing("10.10.13.30:26034")
 	if err != nil {
-		log.Errorf("Could not initialize jaeger tracer: %s", err.Error())
-		return err
+		return nil, err
 	}
-	//http.HandleFunc("/", handlers.GraphNamespaces)
-	configClient, err := kubernetes.ConfigClient()
-	if err != nil {
-		return err
-	}
-	clientSet, err := kubernetes.GetDefaultK8sClientSet()
-	if err != nil {
-		return err
-	}
-	graphController := handlers.NewGraphController(configClient, clientSet)
+	//return http.ListenAndServe(":8000", r)
+	return routers.NewRouter()
+}
 
-	r := chi.NewRouter()
-	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8000/swagger/doc.json"), //The url pointing to API definition"
-	))
-	r.Get("/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}", graphController.GetNamespacesController)
-	r.Get("/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}", graphController.GetNodeController)
-	return http.ListenAndServe(":8000", r)
+func Start(r *chi.Mux) {
+	log.Errorf("server start %v", http.ListenAndServe(":8000", r))
 }

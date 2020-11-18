@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-func GetRestConfig() (restConfig *rest.Config) {
+func GetRestConfig1() (restConfig *rest.Config) {
 	path := "/Users/clare/.kube/config"
 	file, err := os.Open(path)
 	if err != nil {
@@ -49,11 +49,11 @@ func TestGraphNamespace(t *testing.T) {
 		Context:            "cluster02",
 	}
 
-	o, err := option.NewGraphOptions(GetRestConfig(), "http://10.10.13.30:9090")
+	o, err := option.NewGraphOptions(GetRestConfig1(), "http://10.10.13.30:9090")
 	if err != nil {
 		assert.Equal(t, nil, err)
 	}
-	business, err := GetBusinessNoAuth(GetRestConfig(), "http://10.10.13.30:9090", nil)
+	business, err := GetBusinessNoAuth(GetRestConfig1(), "http://10.10.13.30:9090", nil)
 	if err != nil {
 		assert.Equal(t, nil, err)
 	}

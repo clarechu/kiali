@@ -109,6 +109,13 @@ var doc = `{
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "description": "service 名称",
+                        "name": "service",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
                         "type": "boolean",
                         "description": "是否去掉没有流量的线",
                         "name": "deadEdges",
@@ -143,8 +150,7 @@ var doc = `{
             "type": "object",
             "properties": {
                 "cluster": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "type": "object"
                 },
                 "passthrough": {
                     "type": "object"

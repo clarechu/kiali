@@ -101,8 +101,38 @@ func (g *GraphController) GetNamespaces(graphs *Graph) (graphName GraphName, err
 	return
 }
 
-func (g *GraphController) GetNode() {
-
+func (g *GraphController) GetNode(graphs *Graph) (graphName GraphName, err error) {
+	ctx := context.TODO()
+	graphSpan, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("GetNodeGraph"))
+	defer graphSpan.Finish()
+	optionSpan := opentracing.StartSpan("node-options", opentracing.ChildOf(graphSpan.Context()))
+	clusters := map[string]string{
+		"cluster01": "10.10.13.34",
+		"cluster02": "10.10.13.30",
+		"cluster03": "10.10.13.59",
+	}
+	option := graph.NewSimpleOption(graphs.Namespace, g.Context, g.PrometheusURL,
+		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).
+		SetService(graphs.Service).
+		SetNamespace(graphs.Namespace).
+		SetPassThrough(graphs.PassThrough).SetDuration(graphs.Duration)
+	clusterCha := make(map[string]interface{}, 0)
+	log.Infof("cluster start ")
+	graphApi, err := api.NewGraphApi(option, optionSpan)
+	if err != nil {
+		return
+	}
+	// handle
+	edges, err := graphApi.NodeRegistryHandle(optionSpan, clusterCha)
+	if err != nil {
+		return
+	}
+	log.Info("cluster done ... ")
+	graphName = GraphName{
+		Cluster:     clusterCha[g.Context],
+		Passthrough: edges,
+	}
+	return
 }
 
 //GetNodeToService
@@ -129,5 +159,10 @@ func (g *GraphController) GetNodeController(w http.ResponseWriter, r *http.Reque
 		RespondWithError(w, 500, err.Error())
 		return
 	}
-	RespondWithJSON(w, 200, 1)
+	graphName, err := g.GetNode(graphs)
+	if err != nil {
+		RespondWithError(w, 500, err.Error())
+		return
+	}
+	RespondWithJSON(w, 200, graphName)
 }
