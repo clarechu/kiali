@@ -50,7 +50,10 @@ func (g *GraphApi) RegistryHandle(span opentracing.Span, loads map[string]interf
 }
 
 func (g *GraphApi) NodeRegistryHandle(span opentracing.Span, loads map[string]interface{}) (edges []*cytoscape.EdgeWrapper, err error) {
-	graphNodeCluster(g.business, g.options, span, loads)
+	err = graphNodeCluster(g.business, g.options, span, loads)
+	if err != nil {
+		return nil, err
+	}
 	if g.options.PassThrough {
 		return passNodeEdges(g.business, g.options, span)
 
@@ -71,15 +74,19 @@ func graphNamespacesCluster(business *business.Layer, o graph.Options, span open
 }
 
 //graphNodeCluster  单个集群的 某个节点 级别的流量视图
-func graphNodeCluster(business *business.Layer, o graph.Options, span opentracing.Span, loads map[string]interface{}) {
+func graphNodeCluster(business *business.Layer, o graph.Options, span opentracing.Span, loads map[string]interface{}) error {
 	graphNamespacesSpan := opentracing.StartSpan("get graph", opentracing.FollowsFrom(span.Context()))
 	graphNamespacesSpan.LogKV("func GraphNamespaces start", "")
-	_, payload := GraphNode(business, o)
+	_, payload, err := GraphNode(business, o)
+	if err != nil {
+		return err
+	}
 	graphNamespacesSpan.Finish()
 	/*	if err != nil {
 		return
 	}*/
 	loads[o.Context] = payload
+	return nil
 }
 
 //passEdges 获取当前集群跨集群的线
@@ -123,9 +130,10 @@ func GraphNamespaces(business *business.Layer, o graph.Options, span opentracing
 
 // GraphNode generates a node graph using the provided options
 // Get cross-cluster traffic lines
-func GraphNode(business *business.Layer, o graph.Options) (code int, config interface{}) {
+func GraphNode(business *business.Layer, o graph.Options) (code int, config interface{}, err error) {
 	if len(o.Namespaces) != 1 {
-		graph.Error(fmt.Sprintf("Node graph does not support the 'namespaces' query parameter or the 'all' namespace"))
+		return 500, nil, fmt.Errorf("node graph does not support the 'namespaces' query parameter or the 'all' namespace")
+		//graph.Error(fmt.Sprintf("Node graph does not support the 'namespaces' query parameter or the 'all' namespace"))
 	}
 
 	// time how long it takes to generate this graph
@@ -135,16 +143,18 @@ func GraphNode(business *business.Layer, o graph.Options) (code int, config inte
 	switch o.TelemetryVendor {
 	case graph.VendorIstio:
 		prom, err := prometheus.NewClientNoAuth(business.PromAddress)
-		graph.CheckError(err)
-		//
+		if err != nil {
+			return 500, nil, err
+		}
 		code, config = graphNodeIstio(business, prom, o)
 	default:
-		graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
+		return 500, nil, fmt.Errorf("TelemetryVendor [%s] not supported", o.TelemetryVendor)
+		//graph.Error(fmt.Sprintf("TelemetryVendor [%s] not supported", o.TelemetryVendor))
 	}
 	// update metrics
 	internalmetrics.SetGraphNodes(o.GetGraphKind(), o.TelemetryOptions.GraphType, o.InjectServiceNodes, 0)
 
-	return code, config
+	return code, config, nil
 }
 
 //passThrough 线
