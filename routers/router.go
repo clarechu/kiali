@@ -58,7 +58,7 @@ func NewRoutes(graphController *handlers.GraphController) (r *Routes) {
 	return
 }
 
-func NewRouter() (*chi.Mux, error) {
+func NewRouter(prometheusUrl, context string) (*chi.Mux, error) {
 	r := chi.NewRouter()
 	configClient, err := kubernetes.ConfigClient()
 	if err != nil {
@@ -68,7 +68,7 @@ func NewRouter() (*chi.Mux, error) {
 	if err != nil {
 		return nil, err
 	}
-	graphController := handlers.NewGraphController(configClient, clientSet)
+	graphController := handlers.NewGraphController(configClient, clientSet, prometheusUrl, context)
 	apiRoutes := NewRoutes(graphController)
 	// swagger api html ---> http://localhost:8000/swagger/index.html#/
 	r.Get("/swagger/*", httpSwagger.Handler(

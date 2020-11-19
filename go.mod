@@ -28,6 +28,8 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.4.1
 	github.com/prometheus/procfs v0.0.12-0.20200411134959-0f5e4f3adc67 // indirect
+	github.com/spf13/cobra v1.0.0
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/objx v0.2.1-0.20190415111823-35313a95ee26 // indirect
 	github.com/stretchr/testify v1.6.1
 	github.com/swaggo/http-swagger v0.0.0-20200308142732-58ac5e232fba

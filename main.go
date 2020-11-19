@@ -9,19 +9,61 @@ import (
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/routers"
 	"github.com/kiali/kiali/util"
+	"github.com/spf13/cobra"
 	"net/http"
+	"os"
 )
 
 func init() {
-	// log everything to stderr so that it can be easily gathered by logs, separate log files are problematic with containers
-	_ = flag.Set("logtostderr", "true")
+	//flag.Parse()
 	_ = flag.Set("v", "5")
+	_ = flag.Set("logtostderr", "true")
+	rootCmd.PersistentFlags().StringVar(&kiali.Context, "context",
+		"cluster01", "当前集群的集群名称")
+	rootCmd.PersistentFlags().StringVar(&kiali.Port, "port",
+		":8000", "kiali 暴露端口地址 8000")
+	rootCmd.PersistentFlags().StringVar(&kiali.PrometheusURL, "prometheus",
+		"http://prometheus.istio-system:9090", "[prometheus api 接口 地址]")
+	rootCmd.PersistentFlags().StringVar(&kiali.JaegerURL, "jaeger",
+		"http://jaeger:9090", "[prometheus api 接口 地址]")
 
 }
 
-// Command line arguments
+type Kiali struct {
+	Port          string `json:"port"`
+	JaegerURL     string `json:"jaeger_url"`
+	PrometheusURL string `json:"prometheus_url"`
+	Context       string `json:"context"`
+}
+
 var (
+	// Command line arguments
 	argConfigFile = flag.String("config", "", "Path to the YAML configuration file. If not specified, environment variables will be used for configuration.")
+	kiali         = &Kiali{
+		Port:          ":8000",
+		Context:       "cluster01",
+		JaegerURL:     "http://jaeger:9090",
+		PrometheusURL: "http://prometheus.istio-system:9090",
+	}
+
+	rootCmd = &cobra.Command{
+		Use:   "kiali",
+		Short: "Kiali.",
+		Long:  "kiali graph api version v1.0",
+		Args:  cobra.ExactArgs(0),
+		RunE: func(c *cobra.Command, args []string) (err error) {
+			defer glog.Flush()
+			util.Clock = util.RealClock{}
+			config.Set(config.NewConfig())
+			log.Tracef("Kiali Configuration:\n%+v", config.Get().Server.Address)
+			r, err := kiali.NewServer()
+			if err != nil {
+				log.Errorf("new server error:%v", err)
+				return
+			}
+			return kiali.Start(r)
+		},
+	}
 )
 
 // @title Swagger Kiali API
@@ -38,42 +80,25 @@ var (
 
 // @host localhost:8000
 // @BasePath /
+// process command line
+// load config file if specified, otherwise, rely on environment variables to configure us
+//kiali --port :8000 --jaeger 10.10.13.30:26034 --prometheus http://10.10.13.30:9090
 func main() {
-	defer glog.Flush()
-	util.Clock = util.RealClock{}
-
-	// process command line
-	flag.Parse()
-	// load config file if specified, otherwise, rely on environment variables to configure us
-	if *argConfigFile != "" {
-		c, err := config.LoadFromFile(*argConfigFile)
-		if err != nil {
-			glog.Fatal(err)
-		}
-		config.Set(c)
-	} else {
-		log.Infof("No configuration file specified. Will rely on environment for configuration.")
-		config.Set(config.NewConfig())
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(-1)
 	}
-
-	log.Tracef("Kiali Configuration:\n%+v", config.Get().Server.Address)
-	r, err := NewServer()
-	if err != nil {
-		log.Errorf("new server error:%v", err)
-		return
-	}
-	Start(r)
 }
 
-func NewServer() (*chi.Mux, error) {
-	err := routers.InitOpentracing("10.10.13.30:26034")
+func (k *Kiali) NewServer() (*chi.Mux, error) {
+	err := routers.InitOpentracing(k.JaegerURL)
 	if err != nil {
 		return nil, err
 	}
 	//return http.ListenAndServe(":8000", r)
-	return routers.NewRouter()
+	return routers.NewRouter(k.PrometheusURL, k.Context)
 }
 
-func Start(r *chi.Mux) {
-	log.Errorf("server start %v", http.ListenAndServe(":8000", r))
+func (k *Kiali) Start(r *chi.Mux) error {
+	log.Infof("server start http://localhost%s", k.Port)
+	return http.ListenAndServe(k.Port, r)
 }

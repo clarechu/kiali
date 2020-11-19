@@ -20,12 +20,12 @@ type GraphController struct {
 	ClientSet     kubernetes.Interface
 }
 
-func NewGraphController(config *rest.Config, client kubernetes.Interface) *GraphController {
+func NewGraphController(config *rest.Config, client kubernetes.Interface, prometheus, context string) *GraphController {
 	return &GraphController{
 		Config:        config,
 		ClientSet:     client,
-		PrometheusURL: "http://10.10.13.30:9090",
-		Context:       "cluster",
+		PrometheusURL: prometheus,
+		Context:       context,
 	}
 }
 
