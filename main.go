@@ -37,12 +37,13 @@ type Kiali struct {
 }
 
 var (
+
 	// Command line arguments
 	argConfigFile = flag.String("config", "", "Path to the YAML configuration file. If not specified, environment variables will be used for configuration.")
 	kiali         = &Kiali{
 		Port:          ":8000",
 		Context:       "cluster01",
-		JaegerURL:     "http://jaeger:9090",
+		JaegerURL:     "http://jaeger.service-mesh:6831",
 		PrometheusURL: "http://prometheus.istio-system:9090",
 	}
 

@@ -39,6 +39,9 @@ var doc = `{
                 "consumes": [
                     "application/json"
                 ],
+                "tags": [
+                    "graph"
+                ],
                 "summary": "graph-namespace",
                 "operationId": "GetNamespaces",
                 "parameters": [
@@ -90,6 +93,9 @@ var doc = `{
                 "description": "通过node来查询流量视图",
                 "consumes": [
                     "application/json"
+                ],
+                "tags": [
+                    "graph"
                 ],
                 "summary": "graph-Node",
                 "operationId": "GetNode",

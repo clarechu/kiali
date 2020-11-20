@@ -73,6 +73,8 @@ paths:
           schema:
             $ref: '#/definitions/handlers.responseError'
       summary: graph-namespace
+      tags:
+      - graph
   /graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}:
     get:
       consumes:
@@ -113,4 +115,6 @@ paths:
           schema:
             $ref: '#/definitions/handlers.responseError'
       summary: graph-Node
+      tags:
+      - graph
 swagger: "2.0"

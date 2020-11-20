@@ -45,6 +45,7 @@ type Graph struct {
 // @Summary graph-namespace
 // @Description 通过namespace来查询流量视图
 // @Accept  json
+// @Tags graph
 // @Param namespace path string true "命名空间"
 // @Param duration path string true "时长"
 // @Param deadEdges path boolean false "是否去掉没有流量的线"
@@ -142,6 +143,7 @@ func (g *GraphController) GetNode(graphs *Graph) (graphName GraphName, err error
 // @Summary graph-Node
 // @Description 通过node来查询流量视图
 // @Accept  json
+// @Tags graph
 // @Param namespace path string true "命名空间"
 // @Param duration path string true "时长"
 // @Param service path string true "service 名称"
