@@ -34,7 +34,7 @@ var doc = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}": {
-            "get": {
+            "post": {
                 "description": "通过namespace来查询流量视图",
                 "consumes": [
                     "application/json"
@@ -58,6 +58,15 @@ var doc = `{
                         "name": "duration",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "集群信息",
+                        "name": "cluster",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.NamespacesRequest"
+                        }
                     },
                     {
                         "type": "boolean",
@@ -89,7 +98,7 @@ var doc = `{
             }
         },
         "/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}": {
-            "get": {
+            "post": {
                 "description": "通过node来查询流量视图",
                 "consumes": [
                     "application/json"
@@ -113,6 +122,15 @@ var doc = `{
                         "name": "duration",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "集群信息",
+                        "name": "cluster",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.NamespacesRequest"
+                        }
                     },
                     {
                         "type": "string",
@@ -175,6 +193,17 @@ var doc = `{
                 },
                 "message": {
                     "type": "string"
+                }
+            }
+        },
+        "handlers.NamespacesRequest": {
+            "type": "object",
+            "properties": {
+                "clusters": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

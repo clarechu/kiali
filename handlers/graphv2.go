@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/kiali/kiali/graph"
 	"github.com/kiali/kiali/graph/api"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/util"
 	"github.com/opentracing/opentracing-go"
+	"io/ioutil"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"net/http"
@@ -41,6 +43,10 @@ type Graph struct {
 	Duration      string `json:"duration" default:"60s"`
 }
 
+type NamespacesRequest struct {
+	Clusters map[string]string `json:"clusters" schema:"key --> cluster name , value---> gateway ip"`
+}
+
 // @ID GetNamespaces
 // @Summary graph-namespace
 // @Description 通过namespace来查询流量视图
@@ -48,22 +54,29 @@ type Graph struct {
 // @Tags graph
 // @Param namespace path string true "命名空间"
 // @Param duration path string true "时长"
+// @Param cluster body NamespacesRequest true "集群信息"
 // @Param deadEdges path boolean false "是否去掉没有流量的线"
 // @Param passThrough path boolean false "是否需要加多集群的线"
 // @Success 200 {object} GraphNamespacesResponse
 // @Failure 500 {object} responseError
-// @Router /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough} [get]
+// @Router /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough} [post]
 func (g *GraphController) GetNamespacesController(w http.ResponseWriter, r *http.Request) {
-
-	url := r.RequestURI
-	url = url[7:]
-	graphs := &Graph{}
-	err := util.Parse(url, graphs)
+	request := NamespacesRequest{}
+	s, _ := ioutil.ReadAll(r.Body)
+	err := json.Unmarshal(s, &request)
 	if err != nil {
 		RespondWithError(w, 500, err.Error())
 		return
 	}
-	graphName, err := g.GetNamespaces(graphs)
+	url := r.RequestURI
+	url = url[7:]
+	graphs := &Graph{}
+	err = util.Parse(url, graphs)
+	if err != nil {
+		RespondWithError(w, 500, err.Error())
+		return
+	}
+	graphName, err := g.GetNamespaces(graphs, request.Clusters)
 	if err != nil {
 		RespondWithError(w, 500, err.Error())
 		return
@@ -71,16 +84,16 @@ func (g *GraphController) GetNamespacesController(w http.ResponseWriter, r *http
 	RespondWithJSON(w, 200, graphName)
 }
 
-func (g *GraphController) GetNamespaces(graphs *Graph) (graphName GraphName, err error) {
+func (g *GraphController) GetNamespaces(graphs *Graph, clusters map[string]string) (graphName GraphName, err error) {
 	ctx := context.TODO()
 	graphSpan, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("GetNamespaces"))
 	defer graphSpan.Finish()
 	optionSpan := opentracing.StartSpan("namespace-options", opentracing.ChildOf(graphSpan.Context()))
-	clusters := map[string]string{
+	/*	clusters := map[string]string{
 		"cluster01": "10.10.13.34",
 		"cluster02": "10.10.13.30",
 		"cluster03": "10.10.13.59",
-	}
+	}*/
 	option := graph.NewSimpleOption(graphs.Namespace, g.Context, g.PrometheusURL,
 		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).SetPassThrough(graphs.PassThrough).SetDuration(graphs.Duration)
 	clusterCha := make(map[string]interface{}, 0)
@@ -102,16 +115,16 @@ func (g *GraphController) GetNamespaces(graphs *Graph) (graphName GraphName, err
 	return
 }
 
-func (g *GraphController) GetNode(graphs *Graph) (graphName GraphName, err error) {
+func (g *GraphController) GetNode(graphs *Graph, clusters map[string]string) (graphName GraphName, err error) {
 	ctx := context.TODO()
 	graphSpan, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("GetNodeGraph"))
 	defer graphSpan.Finish()
 	optionSpan := opentracing.StartSpan("node-options", opentracing.ChildOf(graphSpan.Context()))
-	clusters := map[string]string{
+	/*	clusters := map[string]string{
 		"cluster01": "10.10.13.34",
 		"cluster02": "10.10.13.30",
 		"cluster03": "10.10.13.59",
-	}
+	}*/
 	option := graph.NewSimpleOption(graphs.Namespace, g.Context, g.PrometheusURL,
 		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).
 		SetService(graphs.Service).
@@ -146,22 +159,30 @@ func (g *GraphController) GetNode(graphs *Graph) (graphName GraphName, err error
 // @Tags graph
 // @Param namespace path string true "命名空间"
 // @Param duration path string true "时长"
+// @Param cluster body NamespacesRequest true "集群信息"
 // @Param service path string true "service 名称"
 // @Param deadEdges path boolean false "是否去掉没有流量的线"
 // @Param passThrough path boolean false "是否需要加多集群的线"
 // @Success 200 {object} GraphNamespacesResponse
 // @Failure 500 {object} responseError
-// @Router /graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough} [get]
+// @Router /graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough} [post]
 func (g *GraphController) GetNodeController(w http.ResponseWriter, r *http.Request) {
-	url := r.RequestURI
-	url = url[7:]
-	graphs := &Graph{}
-	err := util.Parse(url, graphs)
+	request := NamespacesRequest{}
+	s, _ := ioutil.ReadAll(r.Body)
+	err := json.Unmarshal(s, &request)
 	if err != nil {
 		RespondWithError(w, 500, err.Error())
 		return
 	}
-	graphName, err := g.GetNode(graphs)
+	url := r.RequestURI
+	url = url[7:]
+	graphs := &Graph{}
+	err = util.Parse(url, graphs)
+	if err != nil {
+		RespondWithError(w, 500, err.Error())
+		return
+	}
+	graphName, err := g.GetNode(graphs, request.Clusters)
 	if err != nil {
 		RespondWithError(w, 500, err.Error())
 		return

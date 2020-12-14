@@ -42,14 +42,14 @@ func NewRoutes(graphController *handlers.GraphController) (r *Routes) {
 		},
 		{
 			"Graph-Namespace",
-			http.MethodGet,
+			http.MethodPost,
 			"/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}",
 			graphController.GetNamespacesController,
 			false,
 		},
 		{
 			"Graph-Node",
-			http.MethodGet,
+			http.MethodPost,
 			"/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}",
 			graphController.GetNodeController,
 			false,

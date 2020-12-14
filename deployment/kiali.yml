@@ -168,3 +168,46 @@ metadata:
   namespace: istio-system
 
 
+---
+
+# istio gateway
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: kiali-gateway
+  namespace: service-mesh
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - hosts:
+        - '*'
+      port:
+        name: http
+        number: 20001
+        protocol: HTTP
+
+---
+
+# virtualservices istio
+
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  generation: 1
+  name: kiali
+  namespace: service-mesh
+spec:
+  gateways:
+    - kiali-gateway
+  hosts:
+    - '*'
+  http:
+    - route:
+        - destination:
+            host: kiali
+            port:
+              number: 20001
+
+
