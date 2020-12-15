@@ -111,9 +111,9 @@ func respond(w http.ResponseWriter, code int, payload interface{}) {
 	RespondWithError(w, code, payload.(string))
 }
 
-var HOME_DIR = "/root/.kube/"
+//var HOME_DIR = "/root/.kube/"
 
-//var HOME_DIR = "/Users/clare/.kube/"
+var HOME_DIR = "/Users/clare/.kube/"
 
 type GraphNamespacesResponse struct {
 	Code    int       `json:"code"`

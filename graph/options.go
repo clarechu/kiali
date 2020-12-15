@@ -555,6 +555,7 @@ func getAccessibleNamespacesNoToken(config *rest.Config) map[string]time.Time {
 	ops := metav1.ListOptions{}
 	ns, err := clientSet.CoreV1().Namespaces().List(ops)
 	if err != nil {
+		log.Errorf("get ns error:%v", err)
 		return namespaceMap
 	}
 

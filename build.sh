@@ -10,7 +10,7 @@ echo  "GOOS=linux go build"
 GOOS=linux go build -o kiali
 
 export HOST=harbor.cloud2go.cn
-export TAG=0.0.1
+export TAG=0.0.3
 docker build -t ${HOST}/cloudos-dev/kiali:${TAG} .
 
 docker login -p Harbor12345 -u admin ${HOST}

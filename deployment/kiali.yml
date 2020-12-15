@@ -24,10 +24,12 @@ spec:
         app: kiali
     spec:
       containers:
-        - image: harbor.cloud2go.cn/cloudos-dev/kiali:0.0.1
+        - image: harbor.cloud2go.cn/cloudos-dev/kiali:0.0.3
           args:
             - kiali
             - --context=cluster03
+            - --prometheus=http://prometheus.prometheus-operator:9090
+            #- --prometheus=http://prometheus.istio-system:9090
           imagePullPolicy: Always
           name: kiali
           resources: { }
@@ -36,7 +38,8 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
-
+      serviceAccount: kiali-service-account
+      serviceAccountName: kiali-service-account
 
 ---
 
@@ -66,8 +69,6 @@ kind: ClusterRole
 metadata:
   labels:
     app: kiali
-    operator.istio.io/version: 1.6.0
-    release: istio
   name: kiali
 rules:
   - apiGroups:
@@ -143,8 +144,6 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app: kiali
-    operator.istio.io/version: 1.6.0
-    release: istio
   name: kiali
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -153,7 +152,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kiali-service-account
-    namespace: istio-system
+    namespace: service-mesh
 
 
 ---
@@ -162,11 +161,9 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app: istiod
-    operator.istio.io/version: 1.6.0
-    release: istio
-  name: istiod-service-account
-  namespace: istio-system
+    app: kiali
+  name: kiali-service-account
+  namespace: service-mesh
 
 
 ---
