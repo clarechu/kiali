@@ -1,4 +1,4 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
@@ -13,7 +13,6 @@ spec:
   selector:
     matchLabels:
       app: kiali
-      version: v1
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -26,6 +25,9 @@ spec:
     spec:
       containers:
         - image: harbor.cloud2go.cn/cloudos-dev/kiali:0.0.1
+          args:
+            - kiali
+            - --context=cluster03
           imagePullPolicy: Always
           name: kiali
           resources: { }
@@ -48,9 +50,8 @@ metadata:
 spec:
   ports:
     - name: http-8080
-      port: 8000
+      port: 8080
       protocol: TCP
-      targetPort: 8000
   selector:
     app: kiali
   sessionAffinity: None
@@ -208,6 +209,6 @@ spec:
         - destination:
             host: kiali
             port:
-              number: 20001
+              number: 8080
 
 

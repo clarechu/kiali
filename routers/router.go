@@ -48,6 +48,13 @@ func NewRoutes(graphController *handlers.GraphController) (r *Routes) {
 			false,
 		},
 		{
+			"Graph-test",
+			http.MethodGet,
+			"/graph",
+			handlers.GraphNamespaces,
+			false,
+		},
+		{
 			"Graph-Node",
 			http.MethodPost,
 			"/graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}",

@@ -21,7 +21,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&kiali.Context, "context",
 		"cluster01", "当前集群的集群名称")
 	rootCmd.PersistentFlags().StringVar(&kiali.Port, "port",
-		":8000", "kiali 暴露端口地址 8000")
+		":8080", "kiali 暴露端口地址 8080")
 	rootCmd.PersistentFlags().StringVar(&kiali.PrometheusURL, "prometheus",
 		"http://prometheus.istio-system:9090", "[prometheus api 接口 地址]")
 	rootCmd.PersistentFlags().StringVar(&kiali.JaegerURL, "jaeger",
@@ -41,7 +41,7 @@ var (
 	// Command line arguments
 	argConfigFile = flag.String("config", "", "Path to the YAML configuration file. If not specified, environment variables will be used for configuration.")
 	kiali         = &Kiali{
-		Port:          ":8000",
+		Port:          ":8080",
 		Context:       "cluster01",
 		JaegerURL:     "http://jaeger.service-mesh:6831",
 		PrometheusURL: "http://prometheus.istio-system:9090",
@@ -91,6 +91,7 @@ func main() {
 }
 
 func (k *Kiali) NewServer() (*chi.Mux, error) {
+	log.Infof("cluster name: %s", k.Context)
 	err := routers.InitOpentracing(k.JaegerURL)
 	if err != nil {
 		return nil, err

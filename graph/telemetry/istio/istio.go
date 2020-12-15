@@ -229,9 +229,10 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 			lSourceApp, sourceAppOk := m["source_app"]
 			lDestinationWlNs, _ := m["destination_service_namespace"]
 			lSourceVs, sourceVsOk := m["source_version"]
-			lDestinationWl, destinationWlOk := m["destination_workload"]
+			//lDestinationWl, destinationWlOk := m["destination_workload"]
+			_, destinationWlOk := m["destination_workload"]
 			lSourceWlNs, sourceWlNsOk := m["source_workload_namespace"]
-			lDestinationWl, destinationWlNsOk := m["destination_workload"]
+			_, destinationWlNsOk := m["destination_workload"]
 			lProtocol, protocolOk := m["request_protocol"]
 			if !destinationSvcOk || !sourceWlNsOk || !destinationWlNsOk || !sourceAppOk || !destinationWlOk || !sourceWlOk || !sourceVsOk || !protocolOk {
 				log.Warning("not found sdt svc")
@@ -250,7 +251,7 @@ func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlo
 								string(lSourceWl), string(lSourceApp), string(lSourceVs), graph.GraphTypeVersionedApp)
 							destinationId, _ := graph.Id(string(lDestinationWlNs), hostSplitted[0], "",
 								"", hostSplitted[1], "", graph.GraphTypeService)
-							log.Debugf("sourceId :%v, destinationId :%v lDestinationWl: %v lProtocol:%v", sourceId, destinationId, lDestinationWl, lProtocol)
+							//							log.Debugf("sourceId :%v, destinationId :%v lDestinationWl: %v lProtocol:%v", sourceId, destinationId, lDestinationWl, lProtocol)
 							ips := multiClusters(se.Spec.Endpoints, clusters)
 							for _, desContext := range ips {
 								if desContext == context {
