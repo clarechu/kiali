@@ -35,6 +35,8 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 	if !o.Appenders.All {
 		for _, appenderName := range o.Appenders.AppenderNames {
 			switch appenderName {
+			case ReplicasNodeAppenderName:
+				requestedAppenders[ReplicasNodeAppenderName] = true
 			case DeadNodeAppenderName:
 				requestedAppenders[DeadNodeAppenderName] = true
 			case ServiceEntryAppenderName:
@@ -64,8 +66,14 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 	// Add orphan (unused) services
 	// Run remaining appenders
 
-	// 运行程序的顺序是很重要的 首先需要运行service-entry 接下来 负责从图中删除不需要的节点：
 	var appenders []graph.Appender
+	// 0. 添加副本节点
+	if _, ok := requestedAppenders[ReplicasNodeAppenderName]; ok || o.Appenders.All {
+		a := ReplicasNodeAppender{}
+		appenders = append(appenders, a)
+	}
+
+	// 运行程序的顺序是很重要的 首先需要运行service-entry 接下来 负责从图中删除不需要的节点：
 	// 1. 运行 service-entry
 	if _, ok := requestedAppenders[ServiceEntryAppenderName]; ok || o.Appenders.All {
 		a := ServiceEntryAppender{
@@ -137,6 +145,7 @@ const (
 	serviceDefinitionListKey = "serviceDefinitionListKey" // namespace vendor info
 	serviceEntryHostsKey     = "serviceEntryHosts"        // global vendor info
 	workloadListKey          = "workloadList"             // namespace vendor info
+	ReplicaseListKey         = "replicaseList"            //
 )
 
 type serviceEntry struct {

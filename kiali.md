@@ -1,5 +1,12 @@
 # kiali 源码解析
 
+更新所有的集群
+
+
+```bash
+kubectx |xargs -n 1  kubectl get po -n service-mesh -l app=kiali --context
+```
+
 [中文简体](http://git.cloud2go.cn/service-mesh/kiali/blob/cloudtogo/kiali.md)
 
 

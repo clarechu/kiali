@@ -341,7 +341,8 @@ func NewSimpleOption(namespaces, context, prometheusUrl string, clusters map[str
 			//"serviceEntry," +
 			"istio," +
 			//"securityPolicy,"+
-			"unusedNode",
+			"unusedNode," +
+			"replicasNode",
 		Namespaces:  namespaces,
 		Context:     context,
 		Prometheus:  prometheusUrl,

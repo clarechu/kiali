@@ -62,8 +62,11 @@ type NodeData struct {
 	// App Fields (not required by Cytoscape)
 	NodeType        string              `json:"nodeType"`
 	Namespace       string              `json:"namespace"`
-	Workload        string              `json:"workload,omitempty"`
+	Replicas        int                 `json:"replicas,omitempty"`
+	IsHealth        bool                `json:"isHealth,omitempty"`
+	Workload        string              `json:"workload,omitempty"` // 当存在 workload的时候插入 pod 的数量
 	App             string              `json:"app,omitempty"`
+	IstioSidecar    bool                `json:"istioSidecar,omitempty"`
 	Version         string              `json:"version,omitempty"`
 	Service         string              `json:"service,omitempty"`         // requested service for NodeTypeService
 	DestServices    []graph.ServiceName `json:"destServices,omitempty"`    // requested services for [dest] node
@@ -242,13 +245,16 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 
 		nodeId := nodeHash(id, o.Context)
 		nd := &NodeData{
-			Id:        nodeId,
-			NodeType:  n.NodeType,
-			Namespace: n.Namespace,
-			Workload:  n.Workload,
-			App:       n.App,
-			Version:   n.Version,
-			Service:   n.Service,
+			Id:           nodeId,
+			NodeType:     n.NodeType,
+			Namespace:    n.Namespace,
+			Workload:     n.Workload,
+			App:          n.App,
+			Version:      n.Version,
+			Service:      n.Service,
+			IsHealth:     n.IsHealth,
+			Replicas:     n.Replicas,
+			IstioSidecar: n.IstioSidecar,
 		}
 
 		addNodeTelemetry(n, nd)

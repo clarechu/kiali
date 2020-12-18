@@ -165,7 +165,7 @@ func GraphNamespaces(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			edges = append(edges, e...)
-			log.Info("cluster :%v done ... ")
+			log.Info("cluster : done ... ")
 			wg.Done()
 		}(option)
 	}
@@ -234,7 +234,7 @@ func GraphNode(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			edges = append(edges, e...)
-			log.Info("cluster :%v done ... ")
+			log.Info("cluster : done ... ")
 			wg.Done()
 		}(option)
 	}

@@ -24,15 +24,18 @@ const (
 )
 
 type Node struct {
-	ID        string   // unique identifier for the node
-	NodeType  string   // Node type
-	Namespace string   // Namespace
-	Workload  string   // Workload (deployment) name
-	App       string   // Workload app label value
-	Version   string   // Workload version label value
-	Service   string   // Service name
-	Edges     []*Edge  // child nodes
-	Metadata  Metadata // app-specific data
+	ID           string // unique identifier for the node
+	NodeType     string // Node type
+	Replicas     int
+	IsHealth     bool
+	IstioSidecar bool
+	Namespace    string   // Namespace
+	Workload     string   // Workload (deployment) name
+	App          string   // Workload app label value
+	Version      string   // Workload version label value
+	Service      string   // Service name
+	Edges        []*Edge  // child nodes
+	Metadata     Metadata // app-specific data
 }
 
 type Edge struct {

@@ -28,6 +28,7 @@ type Layer struct {
 	k8s            kubernetes.IstioClientInterface
 	OpenshiftOAuth OpenshiftOAuthService
 	TLS            TLSService
+	Replicase      ReplicaseService
 	ThreeScale     ThreeScaleService
 	Iter8          Iter8Service
 	IstioStatus    IstioStatusService
@@ -196,6 +197,11 @@ func NewWithBackends(k8s kubernetes.IstioClientInterface, prom prometheus.Client
 	temporaryLayer.Namespace = NewNamespaceService(k8s)
 	temporaryLayer.Jaeger = JaegerService{loader: jaegerClient, businessLayer: temporaryLayer}
 	temporaryLayer.k8s = k8s
+	temporaryLayer.Replicase = ReplicaseService{
+		prom:          prom,
+		k8s:           k8s,
+		businessLayer: temporaryLayer,
+	}
 	temporaryLayer.OpenshiftOAuth = OpenshiftOAuthService{k8s: k8s}
 	temporaryLayer.TLS = TLSService{k8s: k8s, businessLayer: temporaryLayer}
 	temporaryLayer.ThreeScale = ThreeScaleService{k8s: k8s}
