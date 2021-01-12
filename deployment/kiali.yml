@@ -2,9 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: kiali
+    app: solar-graph
     version: v1
-  name: kiali
+  name: solar-graph
   namespace: service-mesh
 spec:
   progressDeadlineSeconds: 600
@@ -12,7 +12,7 @@ spec:
   revisionHistoryLimit: 10
   selector:
     matchLabels:
-      app: kiali
+      app: solar-graph
   strategy:
     rollingUpdate:
       maxSurge: 25%
@@ -21,25 +21,25 @@ spec:
   template:
     metadata:
       labels:
-        app: kiali
+        app: solar-graph
     spec:
       containers:
-        - image: harbor.cloud2go.cn/cloudos-dev/kiali:0.0.3
+        - image: harbor.cloud2go.cn/cloudos-dev/solar-graph:0.0.3
           args:
-            - kiali
+            - solar-graph
             - --context=cluster03
             - --prometheus=http://prometheus.prometheus-operator:9090
             #- --prometheus=http://prometheus.istio-system:9090
           imagePullPolicy: Always
-          name: kiali
+          name: solar-graph
           resources: { }
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       schedulerName: default-scheduler
-      serviceAccount: kiali-service-account
-      serviceAccountName: kiali-service-account
+      serviceAccount: solar-graph-service-account
+      serviceAccountName: solar-graph-service-account
 
 ---
 
@@ -47,8 +47,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: kiali
-  name: kiali
+    app: solar-graph
+  name: solar-graph
   namespace: service-mesh
 spec:
   ports:
@@ -56,7 +56,7 @@ spec:
       port: 8080
       protocol: TCP
   selector:
-    app: kiali
+    app: solar-graph
   sessionAffinity: None
   type: ClusterIP
 status:
@@ -68,8 +68,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app: kiali
-  name: kiali
+    app: solar-graph
+  name: solar-graph
 rules:
   - apiGroups:
       - ""
@@ -129,13 +129,6 @@ rules:
       - list
       - patch
       - watch
-  - apiGroups:
-      - monitoring.kiali.io
-    resources:
-      - monitoringdashboards
-    verbs:
-      - get
-      - list
 
 ---
 
@@ -143,15 +136,15 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    app: kiali
-  name: kiali
+    app: solar-graph
+  name: solar-graph
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kiali
+  name: solar-graph
 subjects:
   - kind: ServiceAccount
-    name: kiali-service-account
+    name: solar-graph-service-account
     namespace: service-mesh
 
 
@@ -161,8 +154,8 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    app: kiali
-  name: kiali-service-account
+    app: solar-graph
+  name: solar-graph-service-account
   namespace: service-mesh
 
 
@@ -172,7 +165,7 @@ metadata:
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: kiali-gateway
+  name: solar-graph-gateway
   namespace: service-mesh
 spec:
   selector:
@@ -194,17 +187,17 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   generation: 1
-  name: kiali
+  name: solar-graph
   namespace: service-mesh
 spec:
   gateways:
-    - kiali-gateway
+    - solar-graph-gateway
   hosts:
     - '*'
   http:
     - route:
         - destination:
-            host: kiali
+            host: solar-graph
             port:
               number: 8080
 

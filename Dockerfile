@@ -18,15 +18,14 @@ RUN  mkdir -p ${APP_BIN} ${APP_ROOT} \
      && adduser -u 1001 -S -G root -g 0 -D -h ${APP_ROOT} -s /sbin/nologin go
 
 
-COPY .kube /root/.kube
-COPY ./kiali ${APP_BIN}
+COPY ./solar-graph ${APP_BIN}
 # Drop the root user and make the content of /opt/app-root owned by user 1001
 RUN chown -R 1001:0 ${APP_ROOT}
 
-RUN chmod 755 ${APP_BIN}/kiali
+RUN chmod 755 ${APP_BIN}/solar-graph
 
 WORKDIR ${APP_ROOT}
 
 USER 0
 
-CMD ["kiali"]
+CMD ["solar-graph"]
