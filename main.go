@@ -79,7 +79,7 @@ var (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8000
+// @host localhost:8080
 // @BasePath /
 // process command line
 // load config file if specified, otherwise, rely on environment variables to configure us

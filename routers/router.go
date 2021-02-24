@@ -79,7 +79,7 @@ func NewRouter(prometheusUrl, context string) (*chi.Mux, error) {
 	apiRoutes := NewRoutes(graphController)
 	// swagger api html ---> http://localhost:8000/swagger/index.html#/
 	r.Get("/swagger/*", httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:8000/swagger/doc.json"), //The url pointing to API definition"
+		httpSwagger.URL("http://localhost:8080/swagger/doc.json"), //The url pointing to API definition"
 	))
 	for _, api := range apiRoutes.Routes {
 		r.MethodFunc(api.Method, api.Pattern, api.HandlerFunc)

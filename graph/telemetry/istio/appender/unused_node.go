@@ -69,11 +69,23 @@ func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo 
 
 func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, namespace string, services []models.ServiceDetails, workloads []models.WorkloadListItem) {
 	traffic := make(map[string]interface{}, 0)
+	unknownTraffic := make(map[string]interface{}, 0)
 	for k := range trafficMap {
 		if !strings.Contains(k, "unknown") {
 			traffic[k] = 0
+		} else {
+			if k == "unknown_source" {
+				unknownTraffic[k] = 0
+			}
 		}
 	}
+
+	/*	for k := range trafficMap {
+		if !strings.Contains(k, "unknown") && !strings.Contains(k, "istio-ingressgateway") {
+			traffic[k] = 0
+		}
+	}*/
+
 	for _, svc := range services {
 		graphId, _ := graph.Id(namespace, svc.Service.Name, "", "", "", "", graph.GraphTypeService)
 		delete(traffic, graphId)
@@ -86,7 +98,12 @@ func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, names
 	for k := range traffic {
 		delete(trafficMap, k)
 	}
-	// 下面那种写法导致数组越界了 现在测试一下看看可不可以 有没有用
+
+	for k := range unknownTraffic {
+		delete(trafficMap, k)
+	}
+
+	// fixme 下面那种写法导致数组越界了 现在测试一下看看可不可以 有没有用
 	for k := range traffic {
 		for _, tv := range trafficMap {
 			for i := 0; i < len(tv.Edges); {
@@ -96,14 +113,6 @@ func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, names
 					i++
 				}
 			}
-
-			/*
-				for i, edge := range tv.Edges {
-					if edge.Source.ID == k || edge.Dest.ID == k {
-						tv.Edges = append(tv.Edges[:i], tv.Edges[i+1:]...)
-						i--
-					}
-				}*/
 		}
 	}
 }

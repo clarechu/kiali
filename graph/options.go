@@ -338,9 +338,11 @@ func NewSimpleOption(namespaces, context, prometheusUrl string, clusters map[str
 		GroupBy:            "app",
 		Appenders: "deadNode," +
 			"sidecarsCheck," +
+			"responseTime," +
+			"istio," +
 			//"serviceEntry," +
 			"istio," +
-			//"securityPolicy,"+
+			"securityPolicy," +
 			"unusedNode," +
 			"replicasNode",
 		Namespaces:  namespaces,

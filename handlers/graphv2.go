@@ -89,11 +89,6 @@ func (g *GraphController) GetNamespaces(graphs *Graph, clusters map[string]strin
 	graphSpan, ctx := opentracing.StartSpanFromContext(ctx, fmt.Sprintf("GetNamespaces"))
 	defer graphSpan.Finish()
 	optionSpan := opentracing.StartSpan("namespace-options", opentracing.ChildOf(graphSpan.Context()))
-	/*	clusters := map[string]string{
-		"cluster01": "10.10.13.34",
-		"cluster02": "10.10.13.30",
-		"cluster03": "10.10.13.59",
-	}*/
 	option := graph.NewSimpleOption(graphs.Namespace, g.Context, g.PrometheusURL,
 		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).SetPassThrough(graphs.PassThrough).SetDuration(graphs.Duration)
 	clusterCha := make(map[string]interface{}, 0)
