@@ -332,8 +332,9 @@ type Option struct {
 
 func NewSimpleOption(namespaces, context, prometheusUrl string, clusters map[string]string, config *rest.Config) Option {
 	return Option{
-		Duration:           "60s",
-		GraphType:          "versionedApp",
+		Duration:  "60s",
+		GraphType: GraphTypeVersionedApp,
+		//GraphType:          GraphTypeService,
 		InjectServiceNodes: "true",
 		GroupBy:            "app",
 		Appenders: "deadNode," +
@@ -362,6 +363,14 @@ func (o Option) SetService(service string) Option {
 
 func (o Option) SetDuration(duration string) Option {
 	o.Duration = duration
+	return o
+}
+
+func (o Option) SetGraphType(graphType string) Option {
+	if graphType != "" && graphType != GraphTypeVersionedApp {
+		o.GraphType = graphType
+		o.PassThrough = false
+	}
 	return o
 }
 

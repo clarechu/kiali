@@ -39,6 +39,7 @@ type Graph struct {
 	Service       string `json:"service"`
 	App           string `json:"app"`
 	Version       string `json:"version"`
+	GraphType     string `json:"graphType"`
 	PassThrough   bool   `json:"passThrough" default:"true"`
 	Duration      string `json:"duration" default:"60s"`
 }
@@ -54,6 +55,7 @@ type NamespacesRequest struct {
 // @Tags graph
 // @Param namespace path string true "命名空间"
 // @Param duration path string true "时长"
+// @Param graphType path string versionedApp "视图类型"
 // @Param cluster body NamespacesRequest true "集群信息"
 // @Param deadEdges path boolean false "是否去掉没有流量的线"
 // @Param passThrough path boolean false "是否需要加多集群的线"
@@ -90,7 +92,7 @@ func (g *GraphController) GetNamespaces(graphs *Graph, clusters map[string]strin
 	defer graphSpan.Finish()
 	optionSpan := opentracing.StartSpan("namespace-options", opentracing.ChildOf(graphSpan.Context()))
 	option := graph.NewSimpleOption(graphs.Namespace, g.Context, g.PrometheusURL,
-		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).SetPassThrough(graphs.PassThrough).SetDuration(graphs.Duration)
+		clusters, g.Config).SetDeadEdges(graphs.DeadEdges).SetPassThrough(graphs.PassThrough).SetDuration(graphs.Duration).SetGraphType(graphs.GraphType)
 	clusterCha := make(map[string]interface{}, 0)
 	log.Infof("cluster start ")
 	graphApi, err := api.NewGraphApi(option, optionSpan)

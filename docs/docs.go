@@ -60,6 +60,12 @@ var doc = `{
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "description": "视图类型",
+                        "name": "graphType",
+                        "in": "path"
+                    },
+                    {
                         "description": "集群信息",
                         "name": "cluster",
                         "in": "body",

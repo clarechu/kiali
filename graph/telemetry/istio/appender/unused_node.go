@@ -63,7 +63,11 @@ func (a UnusedNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo 
 
 	a.addUnusedNodes(trafficMap, namespaceInfo.Namespace, services, workloads)
 	// 删除不要的节点
-	a.deleteUnusedNodes(trafficMap, namespaceInfo.Namespace, services, workloads)
+	if a.GraphType == graph.GraphTypeVersionedApp {
+		a.deleteUnusedNodes(trafficMap, namespaceInfo.Namespace, services, workloads)
+	} else {
+		a.deleteServiceUnusedNodes(trafficMap, namespaceInfo.Namespace, services, workloads)
+	}
 	return nil
 }
 
@@ -113,6 +117,14 @@ func (a UnusedNodeAppender) deleteUnusedNodes(trafficMap graph.TrafficMap, names
 					i++
 				}
 			}
+		}
+	}
+}
+
+func (a UnusedNodeAppender) deleteServiceUnusedNodes(trafficMap graph.TrafficMap, namespace string, services []models.ServiceDetails, workloads []models.WorkloadListItem) {
+	for k := range trafficMap {
+		if k == "unknown_source" {
+			delete(trafficMap, k)
 		}
 	}
 }

@@ -62,6 +62,10 @@ paths:
         name: duration
         required: true
         type: string
+      - description: 视图类型
+        in: path
+        name: graphType
+        type: string
       - description: 集群信息
         in: body
         name: cluster
