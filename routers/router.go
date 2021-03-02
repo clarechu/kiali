@@ -43,7 +43,7 @@ func NewRoutes(graphController *handlers.GraphController) (r *Routes) {
 		{
 			"Graph-Namespace",
 			http.MethodPost,
-			"/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}",
+			"/graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}/graphType/{graphType}",
 			graphController.GetNamespacesController,
 			false,
 		},
@@ -89,14 +89,14 @@ func NewRouter(prometheusUrl, context string) (*chi.Mux, error) {
 
 func InitOpentracing(jaegerUrl string) error {
 	cfg := jaegercfg.Configuration{
-		ServiceName: "kiali",
+		ServiceName: "solar-graph.service-mesh",
 		Sampler: &jaegercfg.SamplerConfig{
 			Type:  jaeger.SamplerTypeConst,
 			Param: 1,
 		},
 		Reporter: &jaegercfg.ReporterConfig{
 			LogSpans:           true,
-			LocalAgentHostPort: "10.10.13.30:26034", // 替换host
+			LocalAgentHostPort: jaegerUrl, // 替换host
 		},
 	}
 	jLogger := jaegerlog.StdLogger

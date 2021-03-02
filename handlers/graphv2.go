@@ -61,7 +61,7 @@ type NamespacesRequest struct {
 // @Param passThrough path boolean false "是否需要加多集群的线"
 // @Success 200 {object} GraphNamespacesResponse
 // @Failure 500 {object} responseError
-// @Router /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough} [post]
+// @Router /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}/graphType/{graphType} [post]
 func (g *GraphController) GetNamespacesController(w http.ResponseWriter, r *http.Request) {
 	request := NamespacesRequest{}
 	s, _ := ioutil.ReadAll(r.Body)

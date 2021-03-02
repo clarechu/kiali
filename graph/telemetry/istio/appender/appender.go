@@ -29,8 +29,6 @@ func setLabels() {
 
 // ParseAppenders determines which appenders should run for this graphing request
 func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
-	setLabels()
-
 	requestedAppenders := make(map[string]bool)
 	if !o.Appenders.All {
 		for _, appenderName := range o.Appenders.AppenderNames {
@@ -58,7 +56,6 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 			}
 		}
 	}
-
 	// The appender order is important
 	// To pre-process service nodes run service_entry appender first
 	// To reduce processing, filter dead nodes next
@@ -137,7 +134,6 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 		a := SidecarsCheckAppender{}
 		appenders = append(appenders, a)
 	}
-
 	return appenders
 }
 

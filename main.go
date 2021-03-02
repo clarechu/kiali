@@ -25,7 +25,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&kiali.PrometheusURL, "prometheus",
 		"http://prometheus.istio-system:9090", "[prometheus api 接口 地址]")
 	rootCmd.PersistentFlags().StringVar(&kiali.JaegerURL, "jaeger",
-		"http://jaeger:9090", "[prometheus api 接口 地址]")
+		"jaeger.jaeger-infra:6831", "[prometheus api 接口 地址]")
 
 }
 
@@ -43,7 +43,7 @@ var (
 	kiali         = &Kiali{
 		Port:          ":8080",
 		Context:       "cluster01",
-		JaegerURL:     "http://jaeger.service-mesh:6831",
+		JaegerURL:     "jaeger.jaeger-infra:6831",
 		PrometheusURL: "http://prometheus.istio-system:9090",
 	}
 

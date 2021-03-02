@@ -45,7 +45,7 @@ info:
   title: Swagger Kiali API
   version: "1.0"
 paths:
-  /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}:
+  /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}/graphType/{graphType}:
     post:
       consumes:
       - application/json

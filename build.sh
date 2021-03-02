@@ -18,3 +18,5 @@ docker login -p Harbor12345 -u admin ${HOST}
 docker push ${HOST}/solarmesh/solar-graph:${TAG}
 
 rm -rf solar-graph
+
+kubectl delete po -l app=kiali -n service-mesh

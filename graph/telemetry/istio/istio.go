@@ -53,8 +53,8 @@ func setLabels() {
 func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo, span opentracing.Span) graph.TrafficMap {
 	log.Tracef("Build [%s] graph for [%v] namespaces [%s]", o.GraphType, len(o.Namespaces), o.Namespaces)
 
-	setLabels()
 	appenders := appender.ParseAppenders(o)
+	log.Trace("xxxxx parse xxxx ")
 	span.LogKV("parse appenders")
 	// init TrafficMap
 	trafficMap := graph.NewTrafficMap()
