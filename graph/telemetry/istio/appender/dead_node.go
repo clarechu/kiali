@@ -28,7 +28,8 @@ func (a DeadNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *g
 	if len(trafficMap) == 0 {
 		return errors.New("trafficMap is nil")
 	}
-
+	//删除含 PassthroughCluster 的点
+	delete(trafficMap, "svc_unknown_PassthroughCluster")
 	if getWorkloadList(namespaceInfo) == nil {
 		workloadList, err := globalInfo.Business.Workload.GetWorkloadList(namespaceInfo.Namespace)
 		if err != nil {

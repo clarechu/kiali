@@ -10,7 +10,7 @@ echo  "GOOS=linux go build"
 GOOS=linux go build -o solar-graph
 
 export HOST=harbor.cloud2go.cn
-export TAG=v1.4.1
+export TAG=v1.5.1
 docker build -t ${HOST}/solarmesh/solar-graph:${TAG} .
 
 docker login -p Harbor12345 -u admin ${HOST}
