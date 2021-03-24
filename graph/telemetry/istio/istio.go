@@ -54,7 +54,6 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 	log.Tracef("Build [%s] graph for [%v] namespaces [%s]", o.GraphType, len(o.Namespaces), o.Namespaces)
 
 	appenders := appender.ParseAppenders(o)
-	log.Trace("xxxxx parse xxxx ")
 	span.LogKV("parse appenders")
 	// init TrafficMap
 	trafficMap := graph.NewTrafficMap()
@@ -408,26 +407,15 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 			tcpGroupBy)
 		tcpExtVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 		populateTrafficMapTCP(trafficMap, &tcpExtVector, o)
-		intVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
-		populateTrafficMap(trafficMap, &intVector, o)
-		// 3) query for traffic originating from a workload inside of the namespace PassthroughCluster
-		//todo 获取跨集群的数据
-		/*		istioCountMetric := "istio_request_bytes_count"
-				tcpGroupBy = fmt.Sprintf("source_workload_namespace,source_workload,source_%s,source_%s,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_%s,destination_%s,response_flags,response_code,request_protocol", appLabel, verLabel, appLabel, verLabel)
-				query = fmt.Sprintf(`sum(rate(%s{destination_service=~".*global",source_workload_namespace="%s",response_code="200"} [%vs])) by (%s)`,
-					istioCountMetric,
-					namespace,
-					int(duration.Seconds()), // range duration for the query
-					tcpGroupBy)
-				tcpInVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
-				populateCountMetric(trafficMap, &tcpInVector, o)*/
-		/*		query = fmt.Sprintf(`sum(rate(%s{reporter="source",source_workload_namespace="%s"} [%vs])) by (%s)`,
-					tcpMetric,
-					namespace,
-					int(duration.Seconds()), // range duration for the query
-					tcpGroupBy)
-				tcpInVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
-				populateTrafficMapTCP(trafficMap, &tcpInVector, o)*/
+
+		// 3) query for traffic originating from a workload inside of the namespace
+		query = fmt.Sprintf(`sum(rate(%s{reporter="source",source_workload_namespace="%s"} [%vs])) by (%s)`,
+			tcpMetric,
+			namespace,
+			int(duration.Seconds()), // range duration for the query
+			tcpGroupBy)
+		tcpInVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
+		populateTrafficMapTCP(trafficMap, &tcpInVector, o)
 	}
 
 	return trafficMap
