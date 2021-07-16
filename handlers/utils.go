@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"github.com/opentracing/opentracing-go"
+	"k8s.io/client-go/rest"
 	"net/http"
 	"net/url"
 
@@ -13,7 +15,11 @@ import (
 
 type promClientSupplier func() (*prometheus.Client, error)
 
+type promNoAuthClientSupplier func(promAddress string) (*prometheus.Client, error)
+
 var defaultPromClientSupplier = prometheus.NewClient
+
+var DefaultNoAuthPromClientSupplier = prometheus.NewClientNoAuth
 
 func validateURL(serviceURL string) (*url.URL, error) {
 	return url.ParseRequestURI(serviceURL)
@@ -34,15 +40,55 @@ func checkNamespaceAccess(w http.ResponseWriter, r *http.Request, prom prometheu
 	}
 }
 
+func CheckNamespaceAccess(config *rest.Config, promAddress string, namespace string) *models.Namespace {
+	layer, err := GetBusinessNoAuth(config, promAddress, nil)
+	if err != nil {
+		return nil
+	}
+
+	if nsInfo, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
+		return nil
+	} else {
+		return nsInfo
+	}
+}
+
+func InitContextClientsForMetrics(promSupplier promNoAuthClientSupplier, namespace string,
+	config *rest.Config, promAddress string) (*prometheus.Client, *models.Namespace) {
+	prom, err := promSupplier(promAddress)
+	if err != nil {
+		return nil, nil
+	}
+
+	nsInfo := CheckNamespaceAccess(config, promAddress, namespace)
+	if nsInfo == nil {
+		return nil, nil
+	}
+	return prom, nsInfo
+}
+
 func initClientsForMetrics(w http.ResponseWriter, r *http.Request, promSupplier promClientSupplier, namespace string) (*prometheus.Client, *models.Namespace) {
 	prom, err := promSupplier()
 	if err != nil {
-		log.Error(err)
-		RespondWithError(w, http.StatusServiceUnavailable, "Prometheus client error: "+err.Error())
 		return nil, nil
 	}
 
 	nsInfo := checkNamespaceAccess(w, r, prom, namespace)
+	if nsInfo == nil {
+		return nil, nil
+	}
+	return prom, nsInfo
+}
+
+func InitClientsForMetrics(promSupplier promNoAuthClientSupplier, namespace string,
+	config *rest.Config, promAddress string) (*prometheus.Client, *models.Namespace) {
+	prom, err := promSupplier(promAddress)
+	if err != nil {
+		log.Error(err)
+		return nil, nil
+	}
+
+	nsInfo := CheckNamespaceAccess(config, promAddress, namespace)
 	if nsInfo == nil {
 		return nil, nil
 	}
@@ -69,11 +115,11 @@ func getBusiness(r *http.Request) (*business.Layer, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return business.Get(token)
 }
 
 // getBusiness noauth returns the business layer specific to the users's request
-func GetBusinessNoAuth(name string) (*business.Layer, error) {
-	return business.GetNoAuth(name)
+func GetBusinessNoAuth(config *rest.Config, promAddress string, ctx opentracing.SpanContext) (*business.Layer, error) {
+	span := opentracing.StartSpan("get auth", opentracing.ChildOf(ctx))
+	return business.GetNoAuth(config, promAddress, span)
 }

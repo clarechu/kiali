@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -29,6 +30,11 @@ var (
 // is represented as a percentile value. The default is 95th percentile, which means that
 // 95% of requests executed in no more than the resulting milliseconds. ResponeTime values are
 // reported in milliseconds.
+//ResponseTimeAppender负责将responseTime信息添加到图形中。
+//ResponseTime
+//表示为百分比值。默认值为95％，这意味着
+//95％的请求在不超过结果毫秒的时间内执行。 ResponseTime值 以毫秒为单位报告。
+
 // Name: responseTime
 type ResponseTimeAppender struct {
 	GraphType          string
@@ -44,18 +50,21 @@ func (a ResponseTimeAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a ResponseTimeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a ResponseTimeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if globalInfo.PromClient == nil {
 		var err error
 		globalInfo.PromClient, err = prometheus.NewClient()
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 	}
 
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
+	return nil
 }
 
 // AppendGraph implements Appender

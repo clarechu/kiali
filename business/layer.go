@@ -1,14 +1,17 @@
 package business
 
 import (
+	"fmt"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/jaeger"
 	"github.com/kiali/kiali/kubernetes"
 	"github.com/kiali/kiali/kubernetes/cache"
 	"github.com/kiali/kiali/log"
 	"github.com/kiali/kiali/prometheus"
+	"github.com/opentracing/opentracing-go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 	"sync"
 )
 
@@ -25,10 +28,12 @@ type Layer struct {
 	k8s            kubernetes.IstioClientInterface
 	OpenshiftOAuth OpenshiftOAuthService
 	TLS            TLSService
+	Replicase      ReplicaseService
 	ThreeScale     ThreeScaleService
 	Iter8          Iter8Service
 	IstioStatus    IstioStatusService
-	Context        string
+	PromAddress    string
+	Host           string
 }
 
 // Global clientfactory and prometheus clients.
@@ -51,10 +56,6 @@ func initKialiCache() {
 			excludedWorkloads[w] = true
 		}
 	}
-}
-
-func GetUnauthenticated() (*Layer, error) {
-	return Get("")
 }
 
 // Get the business.Layer
@@ -108,24 +109,50 @@ func GetConfigMap(name string) (configMap *v1.ConfigMap, err error) {
 	return clientSet.CoreV1().ConfigMaps(DefaultNamespace).Get(name, ops)
 }
 
+var kialiCaches map[string]*cache.KialiCache
+var syn sync.Mutex
+
+func initKialiCaches(c *rest.Config) {
+	syn.Lock()
+	defer syn.Unlock()
+	if kialiCaches == nil {
+		kialiCaches = map[string]*cache.KialiCache{}
+	}
+	if kialiCaches[c.Host] == nil {
+		if config.Get().KubernetesConfig.CacheEnabled {
+			if newKialiCache, err := cache.NewCache(c); err != nil {
+				log.Errorf("Error initializing Kiali Cache. Details: %s", err)
+			} else {
+				kialiCaches[c.Host] = &newKialiCache
+			}
+		}
+		if excludedWorkloads == nil {
+			excludedWorkloads = make(map[string]bool)
+			for _, w := range config.Get().KubernetesConfig.ExcludeWorkloads {
+				excludedWorkloads[w] = true
+			}
+		}
+	}
+}
+
+func GetKialiCache(context string) *cache.KialiCache {
+	syn.Lock()
+	defer syn.Unlock()
+	return kialiCaches[context]
+}
+
 // Get the business.Layer
-func GetNoAuth(name string) (*Layer, error) {
+func GetNoAuth(config *rest.Config, promAddress string, span opentracing.Span) (*Layer, error) {
 	// Kiali Cache will be initialized once at first use of Business layer
-	once.Do(initKialiCache)
-	configMap, err := GetConfigMap(name)
+	span.LogKV("init kiali caches", fmt.Sprintf("host :%s", config.Host))
+	initKialiCaches(config)
+	userClient, err := kubernetes.GetClientFileFactory(config)
 	if err != nil {
 		return nil, err
 	}
-	// Use an existing client factory if it exists, otherwise create and use in the future
-	if clientFactory == nil {
-		userClient, err := kubernetes.GetClientFileFactory(configMap.BinaryData[KubeConfig])
-		if err != nil {
-			return nil, err
-		}
-		clientFactory = userClient
-	}
-
+	clientFactory = userClient
 	// Creates a new k8s client based on the current users token
+	span.LogKV("get k8s client")
 	k8s, err := clientFactory.GetClientNoAuth()
 	if err != nil {
 		return nil, err
@@ -133,7 +160,8 @@ func GetNoAuth(name string) (*Layer, error) {
 
 	// Use an existing Prometheus client if it exists, otherwise create and use in the future
 	if prometheusClient == nil {
-		prom, err := prometheus.NewClientNoAuth(name)
+		span.LogKV("get prometheus client")
+		prom, err := prometheus.NewClientNoAuth(promAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -145,7 +173,8 @@ func GetNoAuth(name string) (*Layer, error) {
 		return jaeger.NewClientNoAuth()
 	}
 	layer := NewWithBackends(k8s, prometheusClient, jaegerLoader)
-	layer.Context = name
+	layer.PromAddress = promAddress
+	layer.Host = config.Host
 	return layer, nil
 }
 
@@ -168,6 +197,11 @@ func NewWithBackends(k8s kubernetes.IstioClientInterface, prom prometheus.Client
 	temporaryLayer.Namespace = NewNamespaceService(k8s)
 	temporaryLayer.Jaeger = JaegerService{loader: jaegerClient, businessLayer: temporaryLayer}
 	temporaryLayer.k8s = k8s
+	temporaryLayer.Replicase = ReplicaseService{
+		prom:          prom,
+		k8s:           k8s,
+		businessLayer: temporaryLayer,
+	}
 	temporaryLayer.OpenshiftOAuth = OpenshiftOAuthService{k8s: k8s}
 	temporaryLayer.TLS = TLSService{k8s: k8s, businessLayer: temporaryLayer}
 	temporaryLayer.ThreeScale = ThreeScaleService{k8s: k8s}

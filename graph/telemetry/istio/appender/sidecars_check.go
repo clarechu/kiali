@@ -1,8 +1,10 @@
 package appender
 
 import (
+	"errors"
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/graph"
+	"github.com/kiali/kiali/prometheus"
 )
 
 const SidecarsCheckAppenderName = "sidecarsCheck"
@@ -10,6 +12,9 @@ const SidecarsCheckAppenderName = "sidecarsCheck"
 // SidecarsCheckAppender flags nodes whose backing workloads are missing at least one Envoy sidecar. Note that
 // a node with no backing workloads is not flagged.
 // Name: sidecarsCheck
+// SidecarsCheckAppender标记其后备工作负载缺少至少一个Envoy sidecar的节点。请注意，
+// 没有后备工作负载的节点未标记。
+// 名称：sidecarsCheck
 type SidecarsCheckAppender struct{}
 
 // Name implements Appender
@@ -18,18 +23,21 @@ func (a SidecarsCheckAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a SidecarsCheckAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a SidecarsCheckAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if getWorkloadList(namespaceInfo) == nil {
 		workloadList, err := globalInfo.Business.Workload.GetWorkloadList(namespaceInfo.Namespace)
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 		namespaceInfo.Vendor[workloadListKey] = &workloadList
 	}
 
 	a.applySidecarsChecks(trafficMap, namespaceInfo)
+	return nil
 }
 
 func (a *SidecarsCheckAppender) applySidecarsChecks(trafficMap graph.TrafficMap, namespaceInfo *graph.AppenderNamespaceInfo) {
@@ -76,4 +84,8 @@ func (a *SidecarsCheckAppender) applySidecarsChecks(trafficMap graph.TrafficMap,
 			n.Metadata[graph.HasMissingSC] = true
 		}
 	}
+}
+
+func (a SidecarsCheckAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
+
 }

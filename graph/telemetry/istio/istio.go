@@ -17,6 +17,9 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/kiali/kiali/business"
+	"github.com/kiali/kiali/models"
+	"github.com/opentracing/opentracing-go"
 	"strings"
 	"time"
 
@@ -47,23 +50,39 @@ func setLabels() {
 }
 
 // BuildNamespacesTrafficMap is required by the graph/TelemtryVendor interface
-func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo) graph.TrafficMap {
+func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, globalInfo *graph.AppenderGlobalInfo, span opentracing.Span) graph.TrafficMap {
 	log.Tracef("Build [%s] graph for [%v] namespaces [%s]", o.GraphType, len(o.Namespaces), o.Namespaces)
 
-	setLabels()
 	appenders := appender.ParseAppenders(o)
+	span.LogKV("parse appenders")
+	// init TrafficMap
 	trafficMap := graph.NewTrafficMap()
 
 	for _, namespace := range o.Namespaces {
 		log.Tracef("Build traffic map for namespace [%s]", namespace)
+		//生成一个 namespaceTrafficMap
+		span.LogKV("buildNamespaceTrafficMap start", "")
 		namespaceTrafficMap := buildNamespaceTrafficMap(namespace.Name, o, client)
+		span.LogKV("buildNamespaceTrafficMap end", "")
 		namespaceInfo := graph.NewAppenderNamespaceInfo(namespace.Name)
+		span.LogKV("NewAppenderNamespaceInfo end", "")
+
 		for _, a := range appenders {
+			appendersSpan := opentracing.StartSpan(a.Name(), opentracing.ChildOf(span.Context()))
 			appenderTimer := internalmetrics.GetGraphAppenderTimePrometheusTimer(a.Name())
-			a.AppendGraphNoAuth(namespaceTrafficMap, globalInfo, namespaceInfo, client)
+			appendersSpan.LogKV("appenders start", a.Name())
+			err := a.AppendGraph(namespaceTrafficMap, globalInfo, namespaceInfo)
+			appendersSpan.LogKV("appenders end", a.Name())
+			if err != nil {
+				break
+			}
+			appendersSpan.Finish()
 			appenderTimer.ObserveDuration()
 		}
+		span.LogKV("appenders end ...")
+		// 将 namespaceTrafficMap merge ---->  trafficMap 中
 		telemetry.MergeTrafficMaps(trafficMap, namespace.Name, namespaceTrafficMap)
+		span.LogKV("MergeTrafficMaps...")
 	}
 
 	// The appenders can add/remove/alter nodes. After the manipulations are complete
@@ -80,8 +99,207 @@ func BuildNamespacesTrafficMap(o graph.TelemetryOptions, client *prometheus.Clie
 	return trafficMap
 }
 
+//添加多集群的线
+func NodeMultiClusterEdge(o graph.Options, globalInfo *graph.AppenderGlobalInfo, clusters map[string]string, context string) ([]models.MultiClusterEdge, error) {
+	edges := make([]models.MultiClusterEdge, 0)
+	istioCfg, err := globalInfo.Business.IstioConfig.GetIstioConfigList(business.IstioConfigCriteria{
+		IncludeServiceEntries: true,
+		Namespace:             o.Namespace,
+	})
+	if err != nil {
+		return nil, err
+	}
+	istioCountMetric := "istio_request_bytes_count"
+	tcpGroupBy := fmt.Sprintf("source_workload_namespace,source_workload,source_%s,source_%s,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_%s,destination_%s,response_flags,response_code,request_protocol",
+		appLabel, verLabel, appLabel, verLabel)
+	query := fmt.Sprintf(`sum(rate(%s{destination_service=~".*global",source_workload_namespace="%s",response_code="200"} [%vs])) by (%s)`,
+		istioCountMetric,
+		o.Namespace,
+		int(o.TelemetryOptions.Duration.Seconds()), // range duration for the query
+		tcpGroupBy)
+	//查询有几个跨集群流量
+	tcpInVector := promQuery(query, time.Unix(o.TelemetryOptions.QueryTime, 0), globalInfo.PromClient.API())
+	for _, s := range tcpInVector {
+		m := s.Metric
+		lDestinationSvc, destinationSvcOk := m["destination_service"]
+		lSourceWl, sourceWlOk := m["source_workload"]
+		code, _ := m["response_code"]
+		lSourceApp, sourceAppOk := m["source_app"]
+		lDestinationApp, _ := m["destination_app"]
+		lDestinationWlNs, _ := m["destination_service_namespace"]
+		lSourceVs, sourceVsOk := m["source_version"]
+		lDestinationWl, destinationWlOk := m["destination_workload"]
+		lSourceWlNs, sourceWlNsOk := m["source_workload_namespace"]
+		lDestinationWl, destinationWlNsOk := m["destination_workload"]
+		lProtocol, protocolOk := m["request_protocol"]
+		if !destinationSvcOk || !sourceWlNsOk || !destinationWlNsOk || !sourceAppOk || !destinationWlOk || !sourceWlOk || !sourceVsOk || !protocolOk {
+			log.Warning("not found sdt svc")
+			continue
+		}
+
+		//todo 只保留 有目的地的线
+		service := o.NodeOptions.Service
+		app := o.NodeOptions.App
+		if app != "" {
+			if string(lDestinationApp) != app && string(lSourceApp) != app {
+				continue
+			}
+		} else if service != "" {
+			if strings.Split(string(lDestinationSvc), ".")[0] != service {
+				continue
+			}
+		} else {
+			continue
+		}
+		for _, se := range istioCfg.ServiceEntries {
+			// host --> svc.ns.global
+			for _, host := range se.Spec.Hosts.([]interface{}) {
+				if string(lDestinationSvc) == host.(string) {
+					hostSplitted := strings.Split(host.(string), ".")
+					if len(hostSplitted) < 3 || hostSplitted[2] != "global" {
+						break
+					}
+					if host.(string) == string(lDestinationSvc) {
+						sourceId, _ := graph.Id(string(lSourceWlNs), string(lSourceApp), string(lSourceWlNs),
+							string(lSourceWl), string(lSourceApp), string(lSourceVs), graph.GraphTypeVersionedApp)
+						destinationId, _ := graph.Id(string(lDestinationWlNs), hostSplitted[0], "",
+							"", hostSplitted[1], "", graph.GraphTypeService)
+						log.Debugf("sourceId :%v, destinationId :%v lDestinationWl: %v lProtocol:%v", sourceId, destinationId, lDestinationWl, lProtocol)
+						ips := multiClusters(se.Spec.Endpoints, clusters)
+						for _, desContext := range ips {
+							if desContext == context {
+								continue
+							}
+							rate := map[string]string{}
+							if s.Value.String() != "0" {
+								rate = map[string]string{
+									string(lProtocol): s.Value.String(),
+									fmt.Sprintf("%s%s", string(lProtocol), "PercentReq"): fmt.Sprintf("%v", 100/len(se.Spec.Endpoints)),
+								}
+							}
+							edge := models.MultiClusterEdge{
+								SourceId:           sourceId,
+								DestinationId:      destinationId,
+								Protocol:           string(lProtocol),
+								SourceContext:      context,
+								DestinationContext: desContext,
+								Rate:               rate,
+								Code:               string(code),
+								Host:               string(lDestinationSvc),
+							}
+							edges = append(edges, edge)
+						}
+					}
+				}
+			}
+		}
+	}
+	return edges, nil
+}
+
+// 添加多集群的线
+//todo 这个地方还需要搞一下 查询所有的集群的数据 在来聚合
+func AddMultiClusterEdge(o graph.TelemetryOptions, globalInfo *graph.AppenderGlobalInfo, clusters map[string]string, context string) ([]models.MultiClusterEdge, error) {
+	edges := make([]models.MultiClusterEdge, 0)
+	for namespace := range o.Namespaces {
+		istioCfg, err := globalInfo.Business.IstioConfig.GetIstioConfigList(business.IstioConfigCriteria{
+			IncludeServiceEntries: true,
+			Namespace:             namespace,
+		})
+		if err != nil {
+			return nil, err
+		}
+		//todo 获取跨集群的数据
+		istioCountMetric := "istio_request_bytes_count"
+		tcpGroupBy := fmt.Sprintf("source_workload_namespace,source_workload,source_%s,source_%s,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_%s,destination_%s,response_flags,response_code,request_protocol",
+			appLabel, verLabel, appLabel, verLabel)
+		query := fmt.Sprintf(`sum(rate(%s{destination_service=~".*global",source_workload_namespace="%s",response_code="200"} [%vs])) by (%s)`,
+			istioCountMetric,
+			namespace,
+			int(o.Duration.Seconds()), // range duration for the query
+			tcpGroupBy)
+		//查询有几个跨集群流量
+		tcpInVector := promQuery(query, time.Unix(o.QueryTime, 0), globalInfo.PromClient.API())
+		for _, s := range tcpInVector {
+			m := s.Metric
+			lDestinationSvc, destinationSvcOk := m["destination_service"]
+			lSourceWl, sourceWlOk := m["source_workload"]
+			code, _ := m["response_code"]
+			lSourceApp, sourceAppOk := m["source_app"]
+			lDestinationWlNs, _ := m["destination_service_namespace"]
+			lSourceVs, sourceVsOk := m["source_version"]
+			//lDestinationWl, destinationWlOk := m["destination_workload"]
+			_, destinationWlOk := m["destination_workload"]
+			lSourceWlNs, sourceWlNsOk := m["source_workload_namespace"]
+			_, destinationWlNsOk := m["destination_workload"]
+			lProtocol, protocolOk := m["request_protocol"]
+			if !destinationSvcOk || !sourceWlNsOk || !destinationWlNsOk || !sourceAppOk || !destinationWlOk || !sourceWlOk || !sourceVsOk || !protocolOk {
+				log.Warning("not found sdt svc")
+				continue
+			}
+			for _, se := range istioCfg.ServiceEntries {
+				// host --> svc.ns.global
+				for _, host := range se.Spec.Hosts.([]interface{}) {
+					if string(lDestinationSvc) == host.(string) {
+						hostSplitted := strings.Split(host.(string), ".")
+						if len(hostSplitted) < 3 || hostSplitted[2] != "global" {
+							break
+						}
+						if host.(string) == string(lDestinationSvc) {
+							sourceId, _ := graph.Id(string(lSourceWlNs), string(lSourceApp), string(lSourceWlNs),
+								string(lSourceWl), string(lSourceApp), string(lSourceVs), graph.GraphTypeVersionedApp)
+							destinationId, _ := graph.Id(string(lDestinationWlNs), hostSplitted[0], "",
+								"", hostSplitted[1], "", graph.GraphTypeService)
+							//							log.Debugf("sourceId :%v, destinationId :%v lDestinationWl: %v lProtocol:%v", sourceId, destinationId, lDestinationWl, lProtocol)
+							ips := multiClusters(se.Spec.Endpoints, clusters)
+							for _, desContext := range ips {
+								if desContext == context {
+									continue
+								}
+								rate := map[string]string{}
+								if s.Value.String() != "0" {
+									rate = map[string]string{
+										string(lProtocol): s.Value.String(),
+										fmt.Sprintf("%s%s", string(lProtocol), "PercentReq"): fmt.Sprintf("%v", 100/len(se.Spec.Endpoints)),
+									}
+								}
+								edge := models.MultiClusterEdge{
+									SourceId:           sourceId,
+									DestinationId:      destinationId,
+									Protocol:           string(lProtocol),
+									SourceContext:      context,
+									DestinationContext: desContext,
+									Rate:               rate,
+									Code:               string(code),
+									Host:               string(lDestinationSvc),
+								}
+								edges = append(edges, edge)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return edges, nil
+}
+
+//multiClusters 需要展示的线的集群 multiCluster
+func multiClusters(ips []models.ServiceEntriesEndpoints, clusters map[string]string) []string {
+	cs := make([]string, 0)
+	for k, v := range clusters {
+		for _, ip := range ips {
+			if v == ip.Address {
+				cs = append(cs, k)
+			}
+		}
+	}
+	return cs
+}
+
 // buildNamespaceTrafficMap returns a map of all namespace nodes (key=id).  All
 // nodes either directly send and/or receive requests from a node in the namespace.
+// 返回所有名称空间节点（key = id）的映射。所有节点都直接从名称空间中的节点发送和/或接收请求。
 func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client *prometheus.Client) graph.TrafficMap {
 	// create map to aggregate traffic by protocol and response code
 	trafficMap := graph.NewTrafficMap()
@@ -133,14 +351,14 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 	populateTrafficMap(trafficMap, &extVector, o)
 
 	// 3) query for internal traffic, originating from a workload inside of the namespace
-	query = fmt.Sprintf(`sum(rate(%s{reporter="source",source_workload_namespace="%s"} [%vs])) by (%s)`,
+	// 注释掉 reporter="source",
+	query = fmt.Sprintf(`sum(rate(%s{source_workload_namespace="%s"} [%vs])) by (%s)`,
 		requestsMetric,
 		namespace,
 		int(duration.Seconds()), // range duration for the query
 		groupBy)
 	intVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 	populateTrafficMap(trafficMap, &intVector, o)
-
 	// Query3 misses istio-to-istio traffic, which is only reported destination-side, we must perform an additional query
 	if isIstioNamespace {
 		// find traffic from the source istio namespace to any of the requested istio namespaces
@@ -156,10 +374,19 @@ func buildNamespaceTrafficMap(namespace string, o graph.TelemetryOptions, client
 		intIstioVector := promQuery(query, time.Unix(o.QueryTime, 0), client.API())
 		populateTrafficMap(trafficMap, &intIstioVector, o)
 	}
-
+	//todo
+	for k, v := range trafficMap {
+		if !strings.Contains(k, "unknown") {
+			if _, ok := v.Metadata["httpIn"]; !ok {
+				for _, edges := range v.Edges {
+					delete(edges.Metadata, "http")
+				}
+			}
+		}
+	}
 	// Section for TCP services (note, there is no TCP Istio traffic)
 	tcpMetric := "istio_tcp_sent_bytes_total"
-
+	//tcpMetric = "istio_requests_total"
 	if !isIstioNamespace {
 		// 1) query for traffic originating from "unknown" (i.e. the internet)
 		tcpGroupBy := fmt.Sprintf("source_workload_namespace,source_workload,source_%s,source_%s,destination_service_namespace,destination_service,destination_service_name,destination_workload_namespace,destination_workload,destination_%s,destination_%s,response_flags", appLabel, verLabel, appLabel, verLabel)
@@ -291,7 +518,6 @@ func addTraffic(trafficMap graph.TrafficMap, val float64, protocol, code, flags,
 	if destFound {
 		handleMisconfiguredLabels(dest, destApp, destVer, val, o)
 	}
-
 	graph.AddToMetadata(protocol, val, code, flags, host, source.Metadata, dest.Metadata, edge.Metadata)
 
 	return source, dest
@@ -457,7 +683,7 @@ func BuildNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, gl
 
 	for _, a := range appenders {
 		appenderTimer := internalmetrics.GetGraphAppenderTimePrometheusTimer(a.Name())
-		a.AppendGraphNoAuth(trafficMap, globalInfo, namespaceInfo, client)
+		a.AppendGraph(trafficMap, globalInfo, namespaceInfo)
 		appenderTimer.ObserveDuration()
 	}
 
@@ -481,7 +707,6 @@ func BuildNodeTrafficMap(o graph.TelemetryOptions, client *prometheus.Client, gl
 func buildNodeTrafficMap(namespace string, n graph.Node, o graph.TelemetryOptions, client *prometheus.Client) graph.TrafficMap {
 	httpMetric := "istio_requests_total"
 	interval := o.Namespaces[namespace].Duration
-
 	// create map to aggregate traffic by response code
 	trafficMap := graph.NewTrafficMap()
 

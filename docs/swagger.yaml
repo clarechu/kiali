@@ -1,0 +1,143 @@
+basePath: /
+definitions:
+  handlers.GraphName:
+    properties:
+      cluster:
+        type: object
+      passthrough:
+        type: object
+    type: object
+  handlers.GraphNamespacesResponse:
+    properties:
+      code:
+        type: integer
+      data:
+        $ref: '#/definitions/handlers.GraphName'
+        type: object
+      message:
+        type: string
+    type: object
+  handlers.NamespacesRequest:
+    properties:
+      clusters:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
+  handlers.responseError:
+    properties:
+      detail:
+        type: string
+      error:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Kiali API
+  version: "1.0"
+paths:
+  /graph/namespace/{namespace}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}/graphType/{graphType}:
+    post:
+      consumes:
+      - application/json
+      description: 通过namespace来查询流量视图
+      operationId: GetNamespaces
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 时长
+        in: path
+        name: duration
+        required: true
+        type: string
+      - description: 视图类型
+        in: path
+        name: graphType
+        type: string
+      - description: 集群信息
+        in: body
+        name: cluster
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.NamespacesRequest'
+      - description: 是否去掉没有流量的线
+        in: path
+        name: deadEdges
+        type: boolean
+      - description: 是否需要加多集群的线
+        in: path
+        name: passThrough
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GraphNamespacesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.responseError'
+      summary: graph-namespace
+      tags:
+      - graph
+  /graph/namespace/{namespace}/service/{service}/duration/{duration}/deadEdges/{deadEdges}/passThrough/{passThrough}:
+    post:
+      consumes:
+      - application/json
+      description: 通过node来查询流量视图
+      operationId: GetNode
+      parameters:
+      - description: 命名空间
+        in: path
+        name: namespace
+        required: true
+        type: string
+      - description: 时长
+        in: path
+        name: duration
+        required: true
+        type: string
+      - description: 集群信息
+        in: body
+        name: cluster
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.NamespacesRequest'
+      - description: service 名称
+        in: path
+        name: service
+        required: true
+        type: string
+      - description: 是否去掉没有流量的线
+        in: path
+        name: deadEdges
+        type: boolean
+      - description: 是否需要加多集群的线
+        in: path
+        name: passThrough
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GraphNamespacesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.responseError'
+      summary: graph-Node
+      tags:
+      - graph
+swagger: "2.0"

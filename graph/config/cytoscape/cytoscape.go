@@ -17,6 +17,7 @@ package cytoscape
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/kiali/kiali/models"
 	"sort"
 
 	"github.com/kiali/kiali/graph"
@@ -61,8 +62,11 @@ type NodeData struct {
 	// App Fields (not required by Cytoscape)
 	NodeType        string              `json:"nodeType"`
 	Namespace       string              `json:"namespace"`
-	Workload        string              `json:"workload,omitempty"`
+	Replicas        int                 `json:"replicas,omitempty"`
+	IsHealth        bool                `json:"isHealth,omitempty"`
+	Workload        string              `json:"workload,omitempty"` // 当存在 workload的时候插入 pod 的数量
 	App             string              `json:"app,omitempty"`
+	IstioSidecar    bool                `json:"istioSidecar,omitempty"`
 	Version         string              `json:"version,omitempty"`
 	Service         string              `json:"service,omitempty"`         // requested service for NodeTypeService
 	DestServices    []graph.ServiceName `json:"destServices,omitempty"`    // requested services for [dest] node
@@ -78,6 +82,7 @@ type NodeData struct {
 	IsRoot          bool                `json:"isRoot,omitempty"`          // true | false
 	IsServiceEntry  string              `json:"isServiceEntry,omitempty"`  // set to the location, current values: [ 'MESH_EXTERNAL', 'MESH_INTERNAL' ]
 	IsUnused        bool                `json:"isUnused,omitempty"`        // true | false
+	Context         string              `json:"context,omitempty"`
 }
 
 type EdgeData struct {
@@ -109,21 +114,75 @@ type Config struct {
 	Timestamp int64    `json:"timestamp"`
 	Duration  int64    `json:"duration"`
 	GraphType string   `json:"graphType"`
+	Context   string   `json:"context"`
 	Elements  Elements `json:"elements"`
 }
 
-func nodeHash(id string) string {
+//id 经过md5 hash过了
+func nodeHash(id, context string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s_%s", id, context))))
+}
+
+/*
+func nodeHash(id, context string) string {
+	return fmt.Sprintf("%s", fmt.Sprintf("%s_%s", id, context))
+}*/
+
+func edgeHash(from, to, protocol, context string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s.%s.%s.%s", from, to, protocol, context))))
+}
+
+//id 经过md5 hash过了
+func multiNodeHash(id string) string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(id)))
 }
 
-func edgeHash(from, to, protocol string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%s.%s.%s", from, to, protocol))))
+func NewMultiClusterEdge(multi []models.MultiClusterEdge, o graph.Options) (result []*EdgeWrapper) {
+	edges := make([]*EdgeWrapper, 0)
+	for _, e := range multi {
+		sourceIdHash := nodeHash(e.SourceId, e.SourceContext)
+		destIdHash := nodeHash(e.DestinationId, e.DestinationContext)
+		edgeId := edgeHash(sourceIdHash, destIdHash, e.Protocol, e.SourceContext)
+		traffic := ProtocolTraffic{
+			Protocol: e.Protocol,
+		}
+		if len(e.Rate) != 0 {
+			traffic = ProtocolTraffic{
+				Protocol: e.Protocol,
+				Rates:    e.Rate,
+				Responses: Responses{
+					e.Code: &ResponseDetail{Flags: ResponseFlags{
+						"-": "100.0",
+					},
+						Hosts: ResponseHosts{
+							e.Host: "100.0",
+						}},
+				},
+			}
+		}
+		ed := EdgeData{
+			Id:      edgeId,
+			Source:  sourceIdHash,
+			Target:  destIdHash,
+			Traffic: traffic,
+		}
+
+		ew := EdgeWrapper{
+			Data: &ed,
+		}
+
+		if o.DeadEdges || len(ed.Traffic.Rates) != 0 {
+			edges = append(edges, &ew)
+		}
+		//edges = append(edges, &ew)
+	}
+	return edges
 }
 
 // NewConfig is required by the graph/ConfigVendor interface
 func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Config) {
-	nodes := []*NodeWrapper{}
-	edges := []*EdgeWrapper{}
+	nodes := make([]*NodeWrapper, 0)
+	edges := make([]*EdgeWrapper, 0)
 
 	buildConfig(trafficMap, &nodes, &edges, o)
 
@@ -131,11 +190,11 @@ func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Confi
 	switch o.GroupBy {
 	case graph.GroupByApp:
 		if o.GraphType != graph.GraphTypeService {
-			groupByApp(&nodes)
+			groupByApp(&nodes, o.Context)
 		}
 	case graph.GroupByVersion:
 		if o.GraphType == graph.GraphTypeVersionedApp {
-			groupByVersion(&nodes)
+			groupByVersion(&nodes, o.Context)
 		}
 	default:
 		// no grouping
@@ -176,22 +235,26 @@ func NewConfig(trafficMap graph.TrafficMap, o graph.ConfigOptions) (result Confi
 		Timestamp: o.QueryTime,
 		GraphType: o.GraphType,
 		Elements:  elements,
+		Context:   o.Context,
 	}
 	return result
 }
 
 func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*EdgeWrapper, o graph.ConfigOptions) {
 	for id, n := range trafficMap {
-		nodeId := nodeHash(id)
 
+		nodeId := nodeHash(id, o.Context)
 		nd := &NodeData{
-			Id:        nodeId,
-			NodeType:  n.NodeType,
-			Namespace: n.Namespace,
-			Workload:  n.Workload,
-			App:       n.App,
-			Version:   n.Version,
-			Service:   n.Service,
+			Id:           nodeId,
+			NodeType:     n.NodeType,
+			Namespace:    n.Namespace,
+			Workload:     n.Workload,
+			App:          n.App,
+			Version:      n.Version,
+			Service:      n.Service,
+			IsHealth:     n.IsHealth,
+			Replicas:     n.Replicas,
+			IstioSidecar: n.IstioSidecar,
 		}
 
 		addNodeTelemetry(n, nd)
@@ -261,13 +324,13 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 		*nodes = append(*nodes, &nw)
 
 		for _, e := range n.Edges {
-			sourceIdHash := nodeHash(n.ID)
-			destIdHash := nodeHash(e.Dest.ID)
+			sourceIdHash := nodeHash(n.ID, o.Context)
+			destIdHash := nodeHash(e.Dest.ID, o.Context)
 			protocol := ""
 			if e.Metadata[graph.ProtocolKey] != nil {
 				protocol = e.Metadata[graph.ProtocolKey].(string)
 			}
-			edgeId := edgeHash(sourceIdHash, destIdHash, protocol)
+			edgeId := edgeHash(sourceIdHash, destIdHash, protocol, o.Context)
 			ed := EdgeData{
 				Id:     edgeId,
 				Source: sourceIdHash,
@@ -281,7 +344,13 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 			ew := EdgeWrapper{
 				Data: &ed,
 			}
-			*edges = append(*edges, &ew)
+			//todo 加一个变量如果 没有流量数据就不显示
+			// 后面需要加的功能
+
+			if o.DeadEdges || len(ed.Traffic.Rates) != 0 {
+				*edges = append(*edges, &ew)
+			}
+			//*edges = append(*edges, &ew)
 		}
 	}
 }
@@ -398,7 +467,7 @@ func getRate(md graph.Metadata, k graph.MetadataKey) float64 {
 }
 
 // groupByVersion adds compound nodes to group multiple versions of the same app
-func groupByVersion(nodes *[]*NodeWrapper) {
+func groupByVersion(nodes *[]*NodeWrapper, context string) {
 	appBox := make(map[string][]*NodeData)
 
 	for _, nw := range *nodes {
@@ -408,11 +477,11 @@ func groupByVersion(nodes *[]*NodeWrapper) {
 		}
 	}
 
-	generateGroupCompoundNodes(appBox, nodes, graph.GroupByVersion)
+	generateGroupCompoundNodes(appBox, nodes, graph.GroupByVersion, context)
 }
 
 // groupByApp adds compound nodes to group all nodes for the same app
-func groupByApp(nodes *[]*NodeWrapper) {
+func groupByApp(nodes *[]*NodeWrapper, context string) {
 	appBox := make(map[string][]*NodeData)
 
 	for _, nw := range *nodes {
@@ -422,14 +491,14 @@ func groupByApp(nodes *[]*NodeWrapper) {
 		}
 	}
 
-	generateGroupCompoundNodes(appBox, nodes, graph.GroupByApp)
+	generateGroupCompoundNodes(appBox, nodes, graph.GroupByApp, context)
 }
 
-func generateGroupCompoundNodes(appBox map[string][]*NodeData, nodes *[]*NodeWrapper, groupBy string) {
+func generateGroupCompoundNodes(appBox map[string][]*NodeData, nodes *[]*NodeWrapper, groupBy, context string) {
 	for k, members := range appBox {
 		if len(members) > 1 {
 			// create the compound (parent) node for the member nodes
-			nodeId := nodeHash(k)
+			nodeId := nodeHash(k, context)
 			nd := NodeData{
 				Id:        nodeId,
 				NodeType:  graph.NodeTypeApp,

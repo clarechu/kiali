@@ -58,10 +58,12 @@ type (
 		cacheLock              sync.Mutex
 		tokenLock              sync.RWMutex
 		tokenNamespaces        map[string]namespaceCache
+		namespaces             []namespaceCache
 		tokenNamespaceDuration time.Duration
 	}
 )
 
+// NewKialiCache 实例化kiali cache 创建k8s istio informer 对象 并run起来
 func NewKialiCache() (KialiCache, error) {
 	config, err := kubernetes.ConfigClient()
 	if err != nil {
@@ -73,23 +75,54 @@ func NewKialiCache() (KialiCache, error) {
 	// Cache will see what ServiceAccount can see, so when using OpenShift scenarios, user token is used to fetch the
 	// list of projects/namespaces a specific user can see. When using cache, business layer needs to check if a
 	// specific user can see a specific namespace
-	cacheToken := ""
 	kConfig := kialiConfig.Get()
-	if kConfig.InCluster {
-		if saToken, err := kubernetes.GetKialiToken(); err != nil {
-			return nil, err
-		} else {
-			cacheToken = saToken
-		}
-	}
 	istioConfig := rest.Config{
 		Host:            config.Host,
 		TLSClientConfig: config.TLSClientConfig,
 		QPS:             config.QPS,
-		BearerToken:     cacheToken,
 		Burst:           config.Burst,
 	}
 	istioClient, err := kubernetes.NewClientFromConfig(&istioConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	refreshDuration := time.Duration(kConfig.KubernetesConfig.CacheDuration) * time.Second
+	tokenNamespaceDuration := time.Duration(kConfig.KubernetesConfig.CacheTokenNamespaceDuration) * time.Second
+	cacheNamespaces := kConfig.KubernetesConfig.CacheNamespaces
+	cacheIstioTypes := make(map[string]bool)
+	for _, iType := range kConfig.KubernetesConfig.CacheIstioTypes {
+		cacheIstioTypes[iType] = true
+	}
+	log.Tracef("[Kiali Cache] cacheIstioTypes %v", cacheIstioTypes)
+
+	stopChan := make(map[string]chan struct{})
+
+	for _, ns := range cacheNamespaces {
+		stopChan[ns] = make(chan struct{})
+	}
+
+	kialiCacheImpl := kialiCacheImpl{
+		istioClient:            *istioClient,
+		refreshDuration:        refreshDuration,
+		cacheNamespaces:        cacheNamespaces,
+		cacheIstioTypes:        cacheIstioTypes,
+		stopChan:               stopChan,
+		nsCache:                make(map[string]typeCache),
+		tokenNamespaces:        make(map[string]namespaceCache),
+		tokenNamespaceDuration: tokenNamespaceDuration,
+	}
+
+	kialiCacheImpl.k8sApi = istioClient.GetK8sApi()
+	kialiCacheImpl.istioNetworkingGetter = istioClient.GetIstioNetworkingApi()
+
+	log.Infof("Kiali Cache is active for namespaces %v", cacheNamespaces)
+	return &kialiCacheImpl, nil
+}
+
+func NewCache(istioConfig *rest.Config) (KialiCache, error) {
+	kConfig := kialiConfig.Get()
+	istioClient, err := kubernetes.NewClientFromConfig(istioConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -147,9 +180,10 @@ func (c *kialiCacheImpl) createCache(namespace string) bool {
 	c.nsCache[namespace] = informer
 
 	if _, exist := c.stopChan[namespace]; !exist {
+		//剔除不需要的namespace
 		c.stopChan[namespace] = make(chan struct{})
 	}
-
+	// 同步所有的东西 istio 和k8s的东西
 	go func(stopCh <-chan struct{}) {
 		for _, informer := range c.nsCache[namespace] {
 			go informer.Run(stopCh)

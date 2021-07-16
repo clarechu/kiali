@@ -140,7 +140,7 @@ type namespaceApps = map[string]*appDetails
 
 func castAppDetails(services []core_v1.Service, ws models.Workloads) namespaceApps {
 	allEntities := make(namespaceApps)
-	appLabel := config.Get().IstioLabels.AppLabelName
+	appLabel := "app"
 	for _, service := range services {
 		if app, ok := service.Spec.Selector[appLabel]; ok {
 			if appEntities, ok := allEntities[app]; ok {
@@ -183,9 +183,9 @@ func fetchNamespaceApps(layer *Layer, namespace string, appName string) (namespa
 
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNamespace(namespace); err != nil {
+	/*	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
 		return nil, err
-	}
+	}*/
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)

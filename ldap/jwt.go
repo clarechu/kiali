@@ -52,7 +52,7 @@ func validate(bearerToken string) (UserInfo, error) {
 
 	auth := false
 	var claims JWTClaimsJSON // special struct for decoding the json
-	u := UserInfo{           // user we'll return, initially in error state
+	u := UserInfo{ // user we'll return, initially in error state
 		APIVersion: "authentication.k8s.io/v1beta1",
 		Kind:       "TokenReview",
 		Status: &Status{

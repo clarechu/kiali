@@ -2,4 +2,4 @@ checks:
   enabled: false
   pull_requests:
     required_approvals:
-      - [gbaufake, mattmahoneyrh, hhovsepy, skondkar]
+      - [ gbaufake, mattmahoneyrh, hhovsepy, skondkar ]

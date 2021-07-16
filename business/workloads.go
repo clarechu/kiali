@@ -1,10 +1,7 @@
 package business
 
 import (
-	"sort"
-	"sync"
-	"time"
-
+	errors2 "errors"
 	kmodel "github.com/kiali/k-charted/model"
 	osapps_v1 "github.com/openshift/api/apps/v1"
 	apps_v1 "k8s.io/api/apps/v1"
@@ -12,6 +9,9 @@ import (
 	batch_v1beta1 "k8s.io/api/batch/v1beta1"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"sort"
+	"sync"
+	"time"
 
 	"github.com/kiali/kiali/config"
 	"github.com/kiali/kiali/kubernetes"
@@ -41,6 +41,7 @@ func isWorkloadIncluded(workload string) bool {
 }
 
 // GetWorkloadList is the API handler to fetch the list of workloads in a given namespace.
+// 查找所有 workload 工作负载
 func (in *WorkloadService) GetWorkloadList(namespace string) (models.WorkloadList, error) {
 	var err error
 	promtimer := internalmetrics.GetGoFunctionMetric("business", "WorkloadService", "GetWorkloadList")
@@ -154,6 +155,7 @@ func (in *WorkloadService) GetPodLogs(namespace, name string, opts *core_v1.PodL
 	return in.k8s.GetPodLogs(namespace, name, opts)
 }
 
+//fetchWorkloads 这个地方应该优化
 func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (models.Workloads, error) {
 	var pods []core_v1.Pod
 	var repcon []core_v1.ReplicationController
@@ -165,13 +167,14 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	var conjbs []batch_v1beta1.CronJob
 
 	ws := models.Workloads{}
-
+	kCache := *GetKialiCache(layer.Host)
+	if kCache == nil {
+		return nil, errors2.New("kiali cache not found")
+	}
 	// Check if user has access to the namespace (RBAC) in cache scenarios and/or
 	// if namespace is accessible from Kiali (Deployment.AccessibleNamespaces)
-	if _, err := layer.Namespace.GetNoCacheNamespace(namespace); err != nil {
-		return nil, err
-	}
-
+	//检查用户是否可以在缓存方案中访问名称空间（RBAC）和
+	//是否可以从Kiali（Deployment.AccessibleNamespaces）访问名称空间
 	wg := sync.WaitGroup{}
 	wg.Add(8)
 	errChan := make(chan error, 8)
@@ -181,8 +184,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if kialiCache != nil && kialiCache.CheckNamespace(namespace) {
-			pods, err = kialiCache.GetPods(namespace, labelSelector)
+		if kCache != nil && kCache.CheckNamespace(namespace) {
+			pods, err = kCache.GetPods(namespace, labelSelector)
 		} else {
 			pods, err = layer.k8s.GetPods(namespace, labelSelector)
 		}
@@ -197,8 +200,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if kialiCache != nil && kialiCache.CheckNamespace(namespace) {
-			dep, err = kialiCache.GetDeployments(namespace)
+		if kCache != nil && kCache.CheckNamespace(namespace) {
+			dep, err = kCache.GetDeployments(namespace)
 		} else {
 			dep, err = layer.k8s.GetDeployments(namespace)
 		}
@@ -213,8 +216,8 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		var err error
 		// Check if namespace is cached
 		// Namespace access is checked in the upper caller
-		if kialiCache != nil && kialiCache.CheckNamespace(namespace) {
-			repset, err = kialiCache.GetReplicaSets(namespace)
+		if kCache != nil && kCache.CheckNamespace(namespace) {
+			repset, err = kCache.GetReplicaSets(namespace)
 		} else {
 			repset, err = layer.k8s.GetReplicaSets(namespace)
 		}
@@ -289,11 +292,13 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 		err := <-errChan
 		return ws, err
 	}
+	// 以上部分是找到所有的控制器以及pod
 
 	// Key: name of controller; Value: type of controller
 	controllers := map[string]string{}
 
 	// Find controllers from pods
+	// 把pod放到控制器中
 	for _, pod := range pods {
 		if len(pod.OwnerReferences) != 0 {
 			for _, ref := range pod.OwnerReferences {
@@ -470,6 +475,7 @@ func fetchWorkloads(layer *Layer, namespace string, labelSelector string) (model
 	for k := range controllers {
 		cnames = append(cnames, k)
 	}
+	//cnames 这个玩意是啥
 	sort.Strings(cnames)
 	for _, cname := range cnames {
 		w := &models.Workload{

@@ -28,6 +28,8 @@ func FilterPodsForSelector(selector labels.Selector, allPods []core_v1.Pod) []co
 
 // FilterPodsForEndpoints performs a second pass was selector may return too many data
 // This case happens when a "nil" selector (such as one of default/kubernetes service) is used
+// FilterPodsForEndpoints 执行第二遍，选择器可能返回太多数据//
+// 使用“ nil”选择器（例如默认/ kubernetes服务之一）时，会发生这种情况
 func FilterPodsForEndpoints(endpoints *core_v1.Endpoints, unfiltered []core_v1.Pod) []core_v1.Pod {
 	endpointPods := make(map[string]bool)
 	for _, subset := range endpoints.Subsets {

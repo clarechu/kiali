@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func TestServiceHealth(t *testing.T) {
@@ -19,8 +20,8 @@ func TestServiceHealth(t *testing.T) {
 			RawQuery: "type=service&rateInterval=60s&context=cluster03",
 		},
 	}
-	context := "cluster03"
-	business, err := GetBusinessNoAuth(context)
+	//context := "cluster03"
+	business, err := GetBusinessNoAuth(nil, "", nil)
 	assert.Equal(t, nil, err)
 
 	p := serviceHealthParams{}
@@ -35,8 +36,8 @@ func TestServiceHealth(t *testing.T) {
 }
 
 func TestAppHealth(t *testing.T) {
-	context := "cluster01"
-	business, err := GetBusinessNoAuth(context)
+	//context := "cluster01"
+	business, err := GetBusinessNoAuth(nil, "", nil)
 	assert.Equal(t, nil, err)
 	p := AppHealthParams{}
 	p.Extract("kubernetes", "60s", "bookinfo")
@@ -48,5 +49,44 @@ func TestAppHealth(t *testing.T) {
 }
 
 func TestWorkloadHealth(t *testing.T) {
+
+}
+
+func TestNamespaceHealth(t *testing.T) {
+	// Get business layer
+	//context := "cluster01"
+	business, err := GetBusinessNoAuth(GetRestConfig(""), "http://10.10.13.39:30580", nil)
+	assert.Equal(t, nil, err)
+	p := NamespaceHealthParams{
+		Type: "service",
+		BaseHealthParams: BaseHealthParams{
+			Namespace:    "bookinfo",
+			RateInterval: "60s",
+			QueryTime:    time.Now(),
+		},
+	}
+	ok, _ := p.Extract()
+	assert.Equal(t, true, ok)
+	// Adjust rate interval
+	rateInterval, err := AdjustRateIntervalNoAuth(business, p.Namespace, p.RateInterval, p.QueryTime)
+	assert.Equal(t, nil, err)
+
+	switch p.Type {
+	case "app":
+		health, err := business.Health.GetNamespaceAppHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
+	case "service":
+		health, err := business.Health.GetNamespaceServiceHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
+	case "workload":
+		health, err := business.Health.GetNamespaceWorkloadHealth(p.Namespace, rateInterval, p.QueryTime)
+		assert.Equal(t, nil, err)
+		b, _ := json.MarshalIndent(health, "", "")
+		fmt.Println(string(b))
+	}
 
 }

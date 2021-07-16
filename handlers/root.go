@@ -6,6 +6,10 @@ import (
 	"github.com/kiali/kiali/status"
 )
 
+type Health struct {
+	Up string `json:"up"`
+}
+
 // Healthz is a trivial endpoint that simply returns a 200 status code with no response body.
 // This is to simply confirm the readiness of the server.
 // You can use this for readiness and liveness probes.

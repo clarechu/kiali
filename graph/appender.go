@@ -12,6 +12,7 @@ type AppenderVendorInfo map[string]interface{}
 // can re-use the information.  A new instance is generated for graph and
 // is initially empty.
 type AppenderGlobalInfo struct {
+	Context    string
 	Business   *business.Layer
 	PromClient *prometheus.Client
 	Vendor     AppenderVendorInfo // telemetry vendor's global info
@@ -44,7 +45,8 @@ func NewAppenderNamespaceInfo(namespace string) *AppenderNamespaceInfo {
 type Appender interface {
 	// AppendGraph performs the appender work on the provided traffic map. The map
 	// may be initially empty. An appender is allowed to add or remove map entries.
-	AppendGraph(trafficMap TrafficMap, globalInfo *AppenderGlobalInfo, namespaceInfo *AppenderNamespaceInfo)
+	AppendGraph(trafficMap TrafficMap, globalInfo *AppenderGlobalInfo, namespaceInfo *AppenderNamespaceInfo) error
+
 	AppendGraphNoAuth(trafficMap TrafficMap, globalInfo *AppenderGlobalInfo, namespaceInfo *AppenderNamespaceInfo, client *prometheus.Client)
 	// Name returns a unique appender name and which is the name used to identify the appender (e.g in 'appenders' query param)
 	Name() string

@@ -212,11 +212,16 @@ type KubernetesConfig struct {
 	// Cache duration expressed in seconds
 	// Kiali cache list of namespaces per user, this is typically short lived cache compared with the duration of the
 	// namespace cache defined by previous CacheDuration parameter
+	// 缓存时间
 	CacheTokenNamespaceDuration int `yaml:"cache_token_namespace_duration,omitempty"`
 	// List of controllers that won't be used for Workload calculation
 	// Kiali queries Deployment,ReplicaSet,ReplicationController,DeploymentConfig,StatefulSet,Job and CronJob controllers
 	// Deployment and ReplicaSet will be always queried, but ReplicationController,DeploymentConfig,StatefulSet,Job and CronJobs
 	// can be skipped from Kiali workloads query if they are present in this list
+	////不会用于工作量计算的控制器列表
+	//Kiali查询Deployment，ReplicaSet，ReplicationController，DeploymentConfig，StatefulSet，Job和CronJob控制器
+	//将始终查询Deployment和ReplicaSet，但是ReplicationController，DeploymentConfig，StatefulSet，Job如果存在于此列表中，则可以从Kiali工作负载查询中跳过
+	//和CronJobs
 	ExcludeWorkloads []string `yaml:"excluded_workloads,omitempty"`
 	QPS              float32  `yaml:"qps,omitempty"`
 }

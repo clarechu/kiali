@@ -1063,7 +1063,7 @@ func NewRoutes() (r *Routes) {
 		{
 			"GraphWorkload",
 			"GET",
-			"/api/namespaces/{namespace}/workloads/{workload}/graph",
+			"/api/cluster/{cluster}/namespaces/{namespace}/workloads/{workload}/graph",
 			handlers.GraphNode,
 			true,
 		},

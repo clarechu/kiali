@@ -64,7 +64,8 @@ func NewClientNoAuth() (*Client, error) {
 		return nil, errors.New("jaeger is not available")
 	} else {
 		auth := cfgTracing.Auth
-		if auth.UseKialiToken {}
+		if auth.UseKialiToken {
+		}
 		u, errParse := url.Parse(cfgTracing.InClusterURL)
 		if !cfg.InCluster {
 			u, errParse = url.Parse(cfgTracing.URL)

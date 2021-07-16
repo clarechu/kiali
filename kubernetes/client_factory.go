@@ -1,7 +1,6 @@
 package kubernetes
 
 import (
-	"errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -55,7 +54,6 @@ func GetClientFactory() (ClientFactory, error) {
 			QPS:             config.QPS,
 			Burst:           config.Burst,
 		}
-
 		return getClientFactory(&istioConfig, expirationTime)
 
 	}
@@ -63,63 +61,12 @@ func GetClientFactory() (ClientFactory, error) {
 }
 
 // GetClientFactory returns the client factory. Creates a new one if necessary
-func GetClientFileFactory(kubeConfigBytes []byte) (ClientFactory, error) {
-	if factory == nil {
-		// Create a new config based on what was gathered above but don't specify the bearer token to use
-		istioConfig, err := GetK8sRestClient(kubeConfigBytes)
-		if err != nil {
-			return nil, err
-		}
-		return getClientFactory(istioConfig, expirationTime)
-
-	}
-	return factory, nil
+func GetClientFileFactory(config *rest.Config) (ClientFactory, error) {
+	// Create a new config based on what was gathered above but don't specify the bearer token to use
+	return getClientFactory(config, expirationTime)
 }
 
-
-func GetK8sRestClient(kubeConfigBytes []byte) (restConfig *rest.Config, err error) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			err = errors.New("get not found cluster")
-			return
-		}
-	}()
-	cf, err := LoadFromFile(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	config := &rest.Config{
-		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
-			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
-			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
-		},
-	}
-	return config, nil
-}
-
-func GetK8sClientSet(kubeConfigBytes []byte) (clientSet *kubernetes.Clientset, err error) {
-	defer func() {
-		err := recover()
-		if err != nil {
-			err = errors.New("")
-			return
-		}
-	}()
-	cf, err := LoadFromFile(kubeConfigBytes)
-	if err != nil {
-		return nil, err
-	}
-	config := &rest.Config{
-		Host: cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].Server,
-		TLSClientConfig: rest.TLSClientConfig{
-			CAData:   cf.Clusters[cf.Contexts[cf.CurrentContext].Cluster].CertificateAuthorityData,
-			CertData: cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientCertificateData,
-			KeyData:  cf.AuthInfos[cf.Contexts[cf.CurrentContext].AuthInfo].ClientKeyData,
-		},
-	}
+func GetK8sClientSet(config *rest.Config) (clientSet *kubernetes.Clientset, err error) {
 	clientSet, err = kubernetes.NewForConfig(config)
 	return
 }
@@ -161,18 +108,11 @@ func LoadFromFile(kubeconfigBytes []byte) (*clientcmdapi.Config, error) {
 // newClientFactory allows for specifying the config and expiry duration
 // Mock friendly for testing purposes
 func getClientFactory(istioConfig *rest.Config, expiry time.Duration) (*clientFactory, error) {
-	mutex.Lock()
-	if factory == nil {
-		clientEntriesMap := make(map[string]*clientEntry)
-
-		factory = &clientFactory{
-			baseIstioConfig: istioConfig,
-			clientEntries:   clientEntriesMap,
-		}
-
-		go watchClients(clientEntriesMap, expiry)
+	clientEntriesMap := make(map[string]*clientEntry)
+	factory = &clientFactory{
+		baseIstioConfig: istioConfig,
+		clientEntries:   clientEntriesMap,
 	}
-	mutex.Unlock()
 	return factory, nil
 }
 
@@ -247,9 +187,6 @@ func (cf *clientFactory) getClientEntryNoAuth() (*clientEntry, error) {
 		client:  client,
 		created: time.Now(),
 	}
-
-	mutex.Lock()
-	mutex.Unlock()
 	internalmetrics.SetKubernetesClients(len(cf.clientEntries))
 	return &cEntry, nil
 }

@@ -147,6 +147,21 @@ type baseHealthParams struct {
 	QueryTime time.Time
 }
 
+type BaseHealthParams struct {
+	// The namespace scope
+	//
+	// in: path
+	Namespace string `json:"namespace"`
+	// The rate interval used for fetching error rate
+	//
+	// in: query
+	// default: 10m
+	RateInterval string `json:"rateInterval"`
+
+	// The time to use for the prometheus query
+	QueryTime time.Time
+}
+
 func (p *baseHealthParams) baseExtract(r *http.Request, vars map[string]string) {
 	p.RateInterval = defaultHealthRateInterval
 	time := time.Now()
@@ -171,6 +186,16 @@ type namespaceHealthParams struct {
 	Type string `json:"type"`
 }
 
+type NamespaceHealthParams struct {
+	BaseHealthParams
+	// The type of health, "app", "service" or "workload".
+	//
+	// in: query
+	// pattern: ^(app|service|workload)$
+	// default: app
+	Type string `json:"type"`
+}
+
 func (p *namespaceHealthParams) extract(r *http.Request) (bool, string) {
 	vars := mux.Vars(r)
 	p.baseExtract(r, vars)
@@ -181,6 +206,34 @@ func (p *namespaceHealthParams) extract(r *http.Request) (bool, string) {
 			return false, "Bad request, query parameter 'type' must be one of ['app','service','workload']"
 		}
 		p.Type = healthType
+	}
+	return true, ""
+}
+
+func (p *namespaceHealthParams) Extract(r *http.Request) (bool, string) {
+	vars := mux.Vars(r)
+	p.baseExtract(r, vars)
+	p.Type = "app"
+	queryParams := r.URL.Query()
+	if healthType := queryParams.Get("type"); healthType != "" {
+		if healthType != "app" && healthType != "service" && healthType != "workload" {
+			return false, "Bad request, query parameter 'type' must be one of ['app','service','workload']"
+		}
+		p.Type = healthType
+	}
+	return true, ""
+}
+
+func (p *NamespaceHealthParams) Extract() (bool, string) {
+	if p.RateInterval != "" {
+	} else {
+		p.RateInterval = defaultHealthRateInterval
+	}
+	p.QueryTime = time.Now()
+	if p.Type != "" {
+		if p.Type != "app" && p.Type != "service" && p.Type != "workload" {
+			return false, "Bad request, query parameter 'type' must be one of ['app','service','workload']"
+		}
 	}
 	return true, ""
 }

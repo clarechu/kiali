@@ -1,6 +1,7 @@
 package appender
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,6 +21,8 @@ const (
 // SecurityPolicyAppender is responsible for adding securityPolicy information to the graph.
 // The appender currently reports only mutual_tls security although is written in a generic way.
 // Name: securityPolicy
+// SecurityPolicyAppender负责向图表添加securityPolicy信息。
+//尽管以通用方式编写，但该附加程序当前仅报告international_tls安全性。
 type SecurityPolicyAppender struct {
 	GraphType          string
 	InjectServiceNodes bool
@@ -35,18 +38,21 @@ func (a SecurityPolicyAppender) Name() string {
 }
 
 // AppendGraph implements Appender
-func (a SecurityPolicyAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) {
+func (a SecurityPolicyAppender) AppendGraph(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo) error {
 	if len(trafficMap) == 0 {
-		return
+		return errors.New("trafficMap is nil")
 	}
 
 	if globalInfo.PromClient == nil {
 		var err error
 		globalInfo.PromClient, err = prometheus.NewClient()
-		graph.CheckError(err)
+		if err != nil {
+			return err
+		}
 	}
 
 	a.appendGraph(trafficMap, namespaceInfo.Namespace, globalInfo.PromClient)
+	return nil
 }
 
 func (a SecurityPolicyAppender) AppendGraphNoAuth(trafficMap graph.TrafficMap, globalInfo *graph.AppenderGlobalInfo, namespaceInfo *graph.AppenderNamespaceInfo, client *prometheus.Client) {
