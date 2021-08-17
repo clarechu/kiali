@@ -13,7 +13,6 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/handlers.GraphName'
-        type: object
       message:
         type: string
     type: object

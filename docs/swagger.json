@@ -179,7 +179,6 @@
                     "type": "integer"
                 },
                 "data": {
-                    "type": "object",
                     "$ref": "#/definitions/handlers.GraphName"
                 },
                 "message": {

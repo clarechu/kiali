@@ -64,11 +64,6 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 	// Run remaining appenders
 
 	var appenders []graph.Appender
-	// 0. 添加副本节点
-	if _, ok := requestedAppenders[ReplicasNodeAppenderName]; ok || o.Appenders.All {
-		a := ReplicasNodeAppender{}
-		appenders = append(appenders, a)
-	}
 
 	// 运行程序的顺序是很重要的 首先需要运行service-entry 接下来 负责从图中删除不需要的节点：
 	// 1. 运行 service-entry
@@ -123,13 +118,19 @@ func ParseAppenders(o graph.TelemetryOptions) []graph.Appender {
 		}
 		appenders = append(appenders, a)
 	}
-	// 6。 负责添加 istio中特定的服务信息
+
+	// 6. 添加副本节点
+	if _, ok := requestedAppenders[ReplicasNodeAppenderName]; ok || o.Appenders.All {
+		a := ReplicasNodeAppender{}
+		appenders = append(appenders, a)
+	}
+	// 7。 负责添加 istio中特定的服务信息
 	if _, ok := requestedAppenders[IstioAppenderName]; ok || o.Appenders.All {
 		a := IstioAppender{}
 		appenders = append(appenders, a)
 	}
 
-	// 7。 负责判断 标记其后备工作负载缺少至少一个Envoy sidecar的节点
+	// 8。 负责判断 标记其后备工作负载缺少至少一个Envoy sidecar的节点
 	if _, ok := requestedAppenders[SidecarsCheckAppenderName]; ok || o.Appenders.All {
 		a := SidecarsCheckAppender{}
 		appenders = append(appenders, a)

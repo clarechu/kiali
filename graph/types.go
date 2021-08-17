@@ -29,6 +29,8 @@ type Node struct {
 	Replicas     int
 	IsHealth     bool
 	IstioSidecar bool
+	Labels       map[string]string
+	Annotations  map[string]string
 	Namespace    string   // Namespace
 	Workload     string   // Workload (deployment) name
 	App          string   // Workload app label value

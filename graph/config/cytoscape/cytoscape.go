@@ -67,6 +67,8 @@ type NodeData struct {
 	Workload        string              `json:"workload,omitempty"` // 当存在 workload的时候插入 pod 的数量
 	App             string              `json:"app,omitempty"`
 	IstioSidecar    bool                `json:"istioSidecar,omitempty"`
+	Labels          map[string]string   `json:"labels,omitempty"`
+	Annotations     map[string]string   `json:"annotations,omitempty"`
 	Version         string              `json:"version,omitempty"`
 	Service         string              `json:"service,omitempty"`         // requested service for NodeTypeService
 	DestServices    []graph.ServiceName `json:"destServices,omitempty"`    // requested services for [dest] node
@@ -253,6 +255,8 @@ func buildConfig(trafficMap graph.TrafficMap, nodes *[]*NodeWrapper, edges *[]*E
 			Version:      n.Version,
 			Service:      n.Service,
 			IsHealth:     n.IsHealth,
+			Labels:       n.Labels,
+			Annotations:  n.Annotations,
 			Replicas:     n.Replicas,
 			IstioSidecar: n.IstioSidecar,
 		}
@@ -500,12 +504,14 @@ func generateGroupCompoundNodes(appBox map[string][]*NodeData, nodes *[]*NodeWra
 			// create the compound (parent) node for the member nodes
 			nodeId := nodeHash(k, context)
 			nd := NodeData{
-				Id:        nodeId,
-				NodeType:  graph.NodeTypeApp,
-				Namespace: members[0].Namespace,
-				App:       members[0].App,
-				Version:   "",
-				IsGroup:   groupBy,
+				Id:          nodeId,
+				NodeType:    graph.NodeTypeApp,
+				Namespace:   members[0].Namespace,
+				App:         members[0].App,
+				Version:     "",
+				Labels:      members[0].Labels,
+				Annotations: members[0].Annotations,
+				IsGroup:     groupBy,
 			}
 
 			nw := NodeWrapper{

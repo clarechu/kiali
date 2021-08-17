@@ -57,8 +57,8 @@ type WorkloadListItem struct {
 	AdditionalDetailSample *AdditionalItem `json:"additionalDetailSample"`
 
 	// Workload labels
-	Labels map[string]string `json:"labels"`
-
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
 	// Define if Pods related to this Workload has the label App
 	// required: true
 	// example: true
@@ -121,7 +121,10 @@ func (workload *WorkloadListItem) ParseWorkload(w *Workload) {
 	workload.Labels = w.Labels
 	workload.PodCount = len(w.Pods)
 	workload.AdditionalDetailSample = w.AdditionalDetailSample
+	if len(w.Pods) > 0 {
+		workload.Annotations = w.Pods[0].Annotations
 
+	}
 	/** Check the labels app and version required by Istio in template Pods*/
 	_, workload.AppLabel = w.Labels[conf.IstioLabels.AppLabelName]
 	_, workload.VersionLabel = w.Labels[conf.IstioLabels.VersionLabelName]

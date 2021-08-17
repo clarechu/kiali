@@ -39,17 +39,27 @@ func (r ReplicasNodeAppender) AppendGraph(trafficMap graph.TrafficMap, globalInf
 func (r ReplicasNodeAppender) applyNodes(trafficMap graph.TrafficMap, namespaceInfo *graph.AppenderNamespaceInfo) {
 	workloadList := namespaceInfo.Vendor[workloadListKey].(*models.WorkloadList)
 	for _, workload := range workloadList.Workloads {
-		id, _ := graph.Id("", "", workloadList.Namespace.Name, workload.Name, workload.Labels["app"], workload.Labels["version"], graph.GraphTypeVersionedApp)
+		workloadId, _ := graph.Id("", "", workloadList.Namespace.Name, workload.Name, workload.Labels["app"], workload.Labels["version"], graph.GraphTypeVersionedApp)
+		serviceId, _ := graph.Id(workloadList.Namespace.Name, workload.Labels["app"], "", "", workload.Labels["app"], workload.Labels["version"], graph.GraphTypeService)
 		log.Debugf("workload :%v", workload.Name)
 		var traffic *graph.Node
-		if g, exit := trafficMap[id]; !exit {
-			continue
-		} else {
+		if g, exit := trafficMap[workloadId]; exit {
 			traffic = g
+			traffic.IsHealth = true
+			traffic.IstioSidecar = workload.IstioSidecar
+			traffic.Replicas = workload.PodCount
+			traffic.Annotations = workload.Annotations
+			traffic.Labels = workload.Labels
 		}
-		traffic.IsHealth = true
-		traffic.IstioSidecar = workload.IstioSidecar
-		traffic.Replicas = workload.PodCount
+		if g, exit := trafficMap[serviceId]; exit {
+			traffic = g
+			traffic.IsHealth = true
+			traffic.IstioSidecar = workload.IstioSidecar
+			traffic.Replicas = workload.PodCount
+			traffic.Annotations = workload.Annotations
+			traffic.Labels = workload.Labels
+		}
+
 	}
 }
 
